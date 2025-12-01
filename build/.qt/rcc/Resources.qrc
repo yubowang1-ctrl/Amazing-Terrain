@@ -1,0 +1,31 @@
+<RCC>
+  <qresource prefix="/">
+    <file alias="resources/shaders/default.frag">C:/Users/yinha/OneDrive/Documents/CSCI-1230-final-project/resources/shaders/default.frag</file>
+    <file alias="resources/shaders/default.vert">C:/Users/yinha/OneDrive/Documents/CSCI-1230-final-project/resources/shaders/default.vert</file>
+    <file alias="resources/textures/terrain/grass/albedo.jpg">C:/Users/yinha/OneDrive/Documents/CSCI-1230-final-project/resources/textures/terrain/grass/albedo.jpg</file>
+    <file alias="resources/textures/terrain/rock_beach/albedo.jpg">C:/Users/yinha/OneDrive/Documents/CSCI-1230-final-project/resources/textures/terrain/rock_beach/albedo.jpg</file>
+    <file alias="resources/textures/terrain/beach/albedo.jpg">C:/Users/yinha/OneDrive/Documents/CSCI-1230-final-project/resources/textures/terrain/beach/albedo.jpg</file>
+    <file alias="resources/textures/terrain/rock/albedo.jpg">C:/Users/yinha/OneDrive/Documents/CSCI-1230-final-project/resources/textures/terrain/rock/albedo.jpg</file>
+    <file alias="resources/textures/terrain/snow/albedo.jpg">C:/Users/yinha/OneDrive/Documents/CSCI-1230-final-project/resources/textures/terrain/snow/albedo.jpg</file>
+    <file alias="resources/textures/terrain/grass/normal.jpg">C:/Users/yinha/OneDrive/Documents/CSCI-1230-final-project/resources/textures/terrain/grass/normal.jpg</file>
+    <file alias="resources/textures/terrain/rock_beach/normal.jpg">C:/Users/yinha/OneDrive/Documents/CSCI-1230-final-project/resources/textures/terrain/rock_beach/normal.jpg</file>
+    <file alias="resources/textures/terrain/beach/normal.jpg">C:/Users/yinha/OneDrive/Documents/CSCI-1230-final-project/resources/textures/terrain/beach/normal.jpg</file>
+    <file alias="resources/textures/terrain/rock/normal.jpg">C:/Users/yinha/OneDrive/Documents/CSCI-1230-final-project/resources/textures/terrain/rock/normal.jpg</file>
+    <file alias="resources/textures/terrain/snow/normal.jpg">C:/Users/yinha/OneDrive/Documents/CSCI-1230-final-project/resources/textures/terrain/snow/normal.jpg</file>
+    <file alias="resources/textures/water_normal_tile.jpg">C:/Users/yinha/OneDrive/Documents/CSCI-1230-final-project/resources/textures/water_normal_tile.jpg</file>
+    <file alias="resources/textures/terrain/grass/roughness.jpg">C:/Users/yinha/OneDrive/Documents/CSCI-1230-final-project/resources/textures/terrain/grass/roughness.jpg</file>
+    <file alias="resources/textures/terrain/rock_beach/roughness.jpg">C:/Users/yinha/OneDrive/Documents/CSCI-1230-final-project/resources/textures/terrain/rock_beach/roughness.jpg</file>
+    <file alias="resources/textures/terrain/beach/roughness.jpg">C:/Users/yinha/OneDrive/Documents/CSCI-1230-final-project/resources/textures/terrain/beach/roughness.jpg</file>
+    <file alias="resources/textures/terrain/rock/roughness.jpg">C:/Users/yinha/OneDrive/Documents/CSCI-1230-final-project/resources/textures/terrain/rock/roughness.jpg</file>
+    <file alias="resources/textures/terrain/snow/roughness.jpg">C:/Users/yinha/OneDrive/Documents/CSCI-1230-final-project/resources/textures/terrain/snow/roughness.jpg</file>
+    <file alias="resources/shaders/terrain.frag">C:/Users/yinha/OneDrive/Documents/CSCI-1230-final-project/resources/shaders/terrain.frag</file>
+    <file alias="resources/shaders/terrain.vert">C:/Users/yinha/OneDrive/Documents/CSCI-1230-final-project/resources/shaders/terrain.vert</file>
+    <file alias="resources/shaders/forest.frag">C:/Users/yinha/OneDrive/Documents/CSCI-1230-final-project/resources/shaders/forest.frag</file>
+    <file alias="resources/shaders/forest.vert">C:/Users/yinha/OneDrive/Documents/CSCI-1230-final-project/resources/shaders/forest.vert</file>
+    <file alias="resources/shaders/water.frag">C:/Users/yinha/OneDrive/Documents/CSCI-1230-final-project/resources/shaders/water.frag</file>
+    <file alias="resources/shaders/water.vert">C:/Users/yinha/OneDrive/Documents/CSCI-1230-final-project/resources/shaders/water.vert</file>
+    <file alias="resources/shaders/sky.frag">C:/Users/yinha/OneDrive/Documents/CSCI-1230-final-project/resources/shaders/sky.frag</file>
+    <file alias="resources/shaders/sky.vert">C:/Users/yinha/OneDrive/Documents/CSCI-1230-final-project/resources/shaders/sky.vert</file>
+  </qresource>
+</RCC>
+

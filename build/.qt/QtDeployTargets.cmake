@@ -1,0 +1,5 @@
+set(__QT_DEPLOY_TARGET_CSCI-1230-FINAL-PROJECT_FILE C:/Users/yinha/OneDrive/Documents/CSCI-1230-final-project/build/CSCI-1230-FINAL-PROJECT.exe)
+set(__QT_DEPLOY_TARGET_CSCI-1230-FINAL-PROJECT_TYPE EXECUTABLE)
+set(__QT_DEPLOY_TARGET_CSCI-1230-FINAL-PROJECT_RUNTIME_DLLS C:/Qt/6.9.2/mingw_64/bin/Qt6OpenGLWidgets.dll;C:/Qt/6.9.2/mingw_64/bin/Qt6Xml.dll;C:/Qt/6.9.2/mingw_64/bin/Qt6OpenGL.dll;C:/Qt/6.9.2/mingw_64/bin/Qt6Widgets.dll;C:/Qt/6.9.2/mingw_64/bin/Qt6Gui.dll;C:/Qt/6.9.2/mingw_64/bin/Qt6Core.dll)
+set(__QT_DEPLOY_TARGET_StaticGLEW_FILE C:/Users/yinha/OneDrive/Documents/CSCI-1230-final-project/build/libStaticGLEW.a)
+set(__QT_DEPLOY_TARGET_StaticGLEW_TYPE STATIC_LIBRARY)

@@ -1,0 +1,130 @@
+{
+	"configurations" : 
+	[
+		{
+			"directories" : 
+			[
+				{
+					"build" : ".",
+					"childIndexes" : 
+					[
+						1
+					],
+					"jsonFile" : "directory-.-Release-d0094a50bb2071803777.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.16"
+					},
+					"projectIndex" : 0,
+					"source" : ".",
+					"targetIndexes" : 
+					[
+						0,
+						1,
+						2,
+						3,
+						4,
+						5,
+						6
+					]
+				},
+				{
+					"build" : "glm",
+					"jsonFile" : "directory-glm-Release-ab70d989331aa8f80f5f.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.16"
+					},
+					"parentIndex" : 0,
+					"projectIndex" : 0,
+					"source" : "glm"
+				}
+			],
+			"name" : "Release",
+			"projects" : 
+			[
+				{
+					"directoryIndexes" : 
+					[
+						0,
+						1
+					],
+					"name" : "CSCI-1230-FINAL-PROJECT",
+					"targetIndexes" : 
+					[
+						0,
+						1,
+						2,
+						3,
+						4,
+						5,
+						6
+					]
+				}
+			],
+			"targets" : 
+			[
+				{
+					"directoryIndex" : 0,
+					"id" : "CSCI-1230-FINAL-PROJECT::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-CSCI-1230-FINAL-PROJECT-Release-a878dd2bef431887b21e.json",
+					"name" : "CSCI-1230-FINAL-PROJECT",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "CSCI-1230-FINAL-PROJECT_autogen::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-CSCI-1230-FINAL-PROJECT_autogen-Release-355b71c43ef0fdc8e73c.json",
+					"name" : "CSCI-1230-FINAL-PROJECT_autogen",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "CSCI-1230-FINAL-PROJECT_autogen_timestamp_deps::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-CSCI-1230-FINAL-PROJECT_autogen_timestamp_deps-Release-4574ef2b132a477d98b4.json",
+					"name" : "CSCI-1230-FINAL-PROJECT_autogen_timestamp_deps",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "CSCI-1230-FINAL-PROJECT_other_files::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-CSCI-1230-FINAL-PROJECT_other_files-Release-c3489e2981664d42253e.json",
+					"name" : "CSCI-1230-FINAL-PROJECT_other_files",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "StaticGLEW::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-StaticGLEW-Release-b0f41d723891e9e9afe6.json",
+					"name" : "StaticGLEW",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "StaticGLEW_autogen::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-StaticGLEW_autogen-Release-9a9728adffde55ebb89f.json",
+					"name" : "StaticGLEW_autogen",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "StaticGLEW_autogen_timestamp_deps::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-StaticGLEW_autogen_timestamp_deps-Release-b8568cf3b825443780e6.json",
+					"name" : "StaticGLEW_autogen_timestamp_deps",
+					"projectIndex" : 0
+				}
+			]
+		}
+	],
+	"kind" : "codemodel",
+	"paths" : 
+	{
+		"build" : "C:/Users/yinha/OneDrive/Documents/CSCI-1230-final-project/build",
+		"source" : "C:/Users/yinha/OneDrive/Documents/CSCI-1230-final-project"
+	},
+	"version" : 
+	{
+		"major" : 2,
+		"minor" : 7
+	}
+}
