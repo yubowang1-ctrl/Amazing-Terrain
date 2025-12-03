@@ -180,6 +180,19 @@ private:
     GLsizei m_branchInstanceCount = 0;
     GLsizei m_leafInstanceCount   = 0;
 
+    // --- Post-processing / FBO ---
+    GLuint m_fboScene        = 0;
+    GLuint m_texSceneColor   = 0;
+    GLuint m_texSceneDepth   = 0;
+    int    m_sceneWidth      = 0;
+    int    m_sceneHeight     = 0;
+
+    // GLuint m_fboPingPong[2] = {0, 0};
+    // GLuint m_texPingPong[2] = {0, 0};
+
+    GLuint m_progPost = 0; // bus post-process shader
+    GLMesh m_screenQuad; // full-screen triangles/quadrilaterals
+
     // helpers
 
     // Get or create a shared GLMesh for a primitive (by type + p1 + p2). Never duplicates buffers.
@@ -201,6 +214,13 @@ private:
 
     GLuint loadTexture2D(const QString &path, bool srgb = false);
 
-    void rebuildWaterMesh(); // NEW
+    void rebuildWaterMesh();
+
+    void ensureSceneFBO(int w, int h);  // create/resize scene FBO （color+depth texture）
+    void destroySceneFBO();
+
+    void createScreenQuad();            // create [-1,1]^2 full-screen triangular grid
+    void renderScene();
+
 };
 

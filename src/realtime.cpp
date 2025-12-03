@@ -185,7 +185,7 @@ void Realtime::buildForest() {
         wGrass *= 1.4f;
         wRock  *= 0.7f;
 
-        float s = wGrass + wRock + 1e-5f;
+        float s = wGrass + wRock + EPS;
         return wGrass / s;
     };
 
@@ -226,7 +226,7 @@ void Realtime::buildForest() {
 
             // height normalization
             float hNorm = glm::clamp(
-                (pWorld.y - seaHeightWorld) / std::max(heightScale, 1e-4f),
+                (pWorld.y - seaHeightWorld) / std::max(heightScale, EPS),
                 0.0f, 1.0f);
 
             // Estimate normal -> Estimate slope
@@ -306,7 +306,7 @@ void Realtime::buildForest() {
             float treeScale     = treeScaleBase * (0.8f + 0.4f * dist01(rng));
 
             // Adjustable: for controlling the size of the generating L-system tree
-            const float TREE_GLOBAL_SCALE = 50.f;
+            const float TREE_GLOBAL_SCALE = 20.f;
             treeScale *= TREE_GLOBAL_SCALE;
 
             float yaw   = 2.f * float(M_PI) * dist01(rng);
@@ -415,250 +415,112 @@ GLuint Realtime::loadTexture2D(const QString &path, bool srgb)
     return tex;
 }
 
-// ================== Rendering the Scene!
-
-Realtime::Realtime(QWidget *parent)
-    : QOpenGLWidget(parent)
+void Realtime::destroySceneFBO()
 {
-    m_prev_mouse_pos = glm::vec2(size().width()/2, size().height()/2);
-    setMouseTracking(true);
-    setFocusPolicy(Qt::StrongFocus);
-
-    m_keyMap[Qt::Key_W]       = false;
-    m_keyMap[Qt::Key_A]       = false;
-    m_keyMap[Qt::Key_S]       = false;
-    m_keyMap[Qt::Key_D]       = false;
-    m_keyMap[Qt::Key_Control] = false;
-    m_keyMap[Qt::Key_Space]   = false;
-
-    // If you must use this function, do not edit anything above this
+    if (m_texSceneColor) {
+        glDeleteTextures(1, &m_texSceneColor);
+        m_texSceneColor = 0;
+    }
+    if (m_texSceneDepth) {
+        glDeleteTextures(1, &m_texSceneDepth);
+        m_texSceneDepth = 0;
+    }
+    if (m_fboScene) {
+        glDeleteFramebuffers(1, &m_fboScene);
+        m_fboScene = 0;
+    }
+    m_sceneWidth  = 0;
+    m_sceneHeight = 0;
 }
 
-void Realtime::rebuildWaterMesh()
+void Realtime::ensureSceneFBO(int w, int h)
 {
-    // sea level in local space
-    float seaLocal = m_terrainParams.seaLevel * m_terrainParams.heightScale;
+    if (w <= 0 || h <= 0) return;
 
-    // Raise the water level slightly (in a localized area)
-    // multiply by the scale in model
-    // note: world size will be approximately 0.2.
-    float waterLocal = seaLocal + 0.02f * m_terrainParams.heightScale;
+    if (w == m_sceneWidth && h == m_sceneHeight &&
+        m_fboScene && m_texSceneColor && m_texSceneDepth) {
+        return;
+    }
 
+    destroySceneFBO();
+
+    m_sceneWidth  = w;
+    m_sceneHeight = h;
+
+    // FBO
+    glGenFramebuffers(1, &m_fboScene);
+    glBindFramebuffer(GL_FRAMEBUFFER, m_fboScene);
+
+    // Color attachment (HDR-friendly, use RGBA16F)
+    glGenTextures(1, &m_texSceneColor);
+    glBindTexture(GL_TEXTURE_2D, m_texSceneColor);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F,
+                 w, h, 0, GL_RGBA, GL_FLOAT, nullptr);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
+                           GL_TEXTURE_2D, m_texSceneColor, 0);
+
+    // Depth attachment
+    glGenTextures(1, &m_texSceneDepth);
+    glBindTexture(GL_TEXTURE_2D, m_texSceneDepth);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24,
+                 w, h, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,
+                           GL_TEXTURE_2D, m_texSceneDepth, 0);
+
+    GLenum bufs[1] = { GL_COLOR_ATTACHMENT0 };
+    glDrawBuffers(1, bufs);
+
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+        qWarning("Scene FBO incomplete!");
+    }
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
+void Realtime::createScreenQuad()
+{
     std::vector<float> verts;
-    verts.reserve(6 * 9); // two triangles, with a total of 6 vertices, each with 9 floats (PNC)
+    verts.reserve(6 * 9);
 
-    auto addV = [&](float x, float y, float z,
-                    float nx, float ny, float nz,
-                    float u, float v)
-    {
-        verts.push_back(x); verts.push_back(y); verts.push_back(z);
-        verts.push_back(nx); verts.push_back(ny); verts.push_back(nz);
-        verts.push_back(u);  verts.push_back(v);  verts.push_back(0.f); // third attribute used as UV
+    auto addV = [&](float x, float y, float u, float v) {
+        // position (clip space)
+        verts.push_back(x);
+        verts.push_back(y);
+        verts.push_back(0.f);
+
+        // normal (unused feature)
+        verts.push_back(0.f);
+        verts.push_back(0.f);
+        verts.push_back(1.f);
+
+        // "color" slot: put uv.xy, z=0
+        verts.push_back(u);
+        verts.push_back(v);
+        verts.push_back(0.f);
     };
 
-    // z-up plane is then rotated into the y-up world using m_terrainModel.
-    glm::vec3 N(0.f, 0.f, 1.f);
+    // two triangles cover [-1,1]^2
+    addV(-1.f, -1.f, 0.f, 0.f);
+    addV( 1.f, -1.f, 1.f, 0.f);
+    addV( 1.f,  1.f, 1.f, 1.f);
 
-    // quad covers [0,1] x [0,1], with height seaLocal
-    addV(0.f, 0.f, waterLocal, N.x, N.y, N.z, 0.f, 0.f);
-    addV(1.f, 0.f, waterLocal, N.x, N.y, N.z, 1.f, 0.f);
-    addV(1.f, 1.f, waterLocal, N.x, N.y, N.z, 1.f, 1.f);
+    addV(-1.f, -1.f, 0.f, 0.f);
+    addV( 1.f,  1.f, 1.f, 1.f);
+    addV(-1.f,  1.f, 0.f, 1.f);
 
-    addV(0.f, 0.f, waterLocal, N.x, N.y, N.z, 0.f, 0.f);
-    addV(1.f, 1.f, waterLocal, N.x, N.y, N.z, 1.f, 1.f);
-    addV(0.f, 1.f, waterLocal, N.x, N.y, N.z, 0.f, 1.f);
-
-    m_waterMesh.uploadinterleavedPNC(verts);
+    m_screenQuad.uploadinterleavedPNC(verts);
 }
 
-void Realtime::finish() {
-    killTimer(m_timer);
-    this->makeCurrent();
 
-    // Students: anything requiring OpenGL calls when the program exits should be done here
-    destroyMeshCache();
-
-    if (m_prog) { glDeleteProgram(m_prog); m_prog = 0; }
-
-    if (m_progTerrain){ glDeleteProgram(m_progTerrain); m_progTerrain = 0; }
-
-    this->doneCurrent();
-}
-
-void Realtime::initializeGL() {
-    m_devicePixelRatio = this->devicePixelRatio();
-
-    m_timer = startTimer(1000/60);
-    m_elapsedTimer.start();
-
-    // Initializing GL.
-    // GLEW (GL Extension Wrangler) provides access to OpenGL functions.
-    glewExperimental = GL_TRUE;
-    GLenum err = glewInit();
-    if (err != GLEW_OK) {
-        std::cerr << "Error while initializing GL: " << glewGetErrorString(err) << std::endl;
-    }
-    std::cout << "Initialized GL: Version " << glewGetString(GLEW_VERSION) << std::endl;
-
-    // Allows OpenGL to draw objects appropriately on top of one another
-    glEnable(GL_DEPTH_TEST);
-    // Tells OpenGL to only draw the front face
-    glEnable(GL_CULL_FACE);
-    // Tells OpenGL how big the screen is
-    glViewport(0, 0, size().width() * m_devicePixelRatio, size().height() * m_devicePixelRatio);
-
-    // Students: anything requiring OpenGL calls when the program starts should be done here
-    if (GLEW_VERSION_3_0 || GLEW_EXT_framebuffer_sRGB) {
-        glEnable(GL_FRAMEBUFFER_SRGB);
-    }
-
-    m_devicePixelRatio = this->devicePixelRatio();
-
-    glViewport(0, 0, size().width()*m_devicePixelRatio, size().height()*m_devicePixelRatio);
-
-    // Build shader program
-    try {
-        m_prog = ShaderLoader::createShaderProgram(
-            ":/resources/shaders/default.vert",
-            ":/resources/shaders/default.frag");
-    } catch (const std::exception& e) {
-        qWarning("Shader compile/link error: %s", e.what());
-        m_prog = 0;
-    }
-
-    // terrain shader
-    try {
-        m_progTerrain = ShaderLoader::createShaderProgram(
-            ":/resources/shaders/terrain.vert",
-            ":/resources/shaders/terrain.frag");
-    } catch (const std::exception& e) {
-        qWarning("Terrain shader compile/link error: %s", e.what());
-        m_progTerrain = 0;
-    }
-
-    // forest shader
-    try {
-        m_progForest = ShaderLoader::createShaderProgram(
-            ":/resources/shaders/forest.vert",
-            ":/resources/shaders/forest.frag");
-    } catch (const std::exception& e) {
-        qWarning("Terrain shader compile/link error: %s", e.what());
-        m_progTerrain = 0;
-    }
-
-    // water shader
-    try {
-        m_progWater = ShaderLoader::createShaderProgram(
-            ":/resources/shaders/water.vert",
-            ":/resources/shaders/water.frag");
-    } catch (const std::exception &e) {
-        qWarning("Water shader compile/link error: %s", e.what());
-        m_progWater = 0;
-    }
-
-    // sky shader
-    try {
-        m_progSky = ShaderLoader::createShaderProgram(
-            ":/resources/shaders/sky.vert",
-            ":/resources/shaders/sky.frag");
-    } catch (const std::exception &e) {
-        qWarning("Sky shader compile/link error: %s", e.what());
-        m_progSky = 0;
-    }
-
-    // use cube mesh as skybox
-    m_skyCube = getOrCreateMesh(PrimitiveType::PRIMITIVE_CUBE, 1, 1);
-
-    if (m_progTerrain) {
-        std::vector<float> interlPNC = m_terrainGen.generateTerrain();
-        m_terrainMesh.uploadinterleavedPNC(interlPNC);
-        m_hasTerrain = true;
-
-        // loading terrain textures
-        m_texGrassAlbedo = loadTexture2D(":/resources/textures/terrain/grass/albedo.jpg", false);
-        m_texRockAlbedo  = loadTexture2D(":/resources/textures/terrain/rock_beach/albedo.jpg", false);
-        m_texBeachAlbedo = loadTexture2D(":/resources/textures/terrain/beach/albedo.jpg", false);
-                m_texRockHighAlbedo = loadTexture2D(":/resources/textures/terrain/rock/albedo.jpg", false);
-        m_texSnowAlbedo = loadTexture2D(":/resources/textures/terrain/snow/albedo.jpg", false);
-
-        m_texGrassNormal = loadTexture2D(":/resources/textures/terrain/grass/normal.jpg", false);
-        m_texRockNormal  = loadTexture2D(":/resources/textures/terrain/rock_beach/normal.jpg", false);
-        m_texBeachNormal = loadTexture2D(":/resources/textures/terrain/beach/normal.jpg", false);
-                m_texRockHighNormal = loadTexture2D(":/resources/textures/terrain/rock/normal.jpg", false);
-        m_texWaterNormal = loadTexture2D(":/resources/textures/water_normal_tile.jpg", false);
-        m_texSnowNormal = loadTexture2D(":/resources/textures/terrain/snow/normal.jpg", false);
-
-        m_texGrassRough = loadTexture2D(":/resources/textures/terrain/grass/roughness.jpg", false);
-        m_texRockRough  = loadTexture2D(":/resources/textures/terrain/rock_beach/roughness.jpg", false);
-        m_texBeachRough = loadTexture2D(":/resources/textures/terrain/beach/roughness.jpg", false);
-        m_texRockHighRough  = loadTexture2D(":/resources/textures/terrain/rock/roughness.jpg", false);
-        m_texSnowRough  = loadTexture2D(":/resources/textures/terrain/snow/roughness.jpg", false);
-
-    } else {
-        m_hasTerrain = false;
-    }
-
-    // z-up (lab07) -> y-up (project) : translate center, scale, rotate -90° around +X
-    glm::mat4 T = glm::translate(glm::mat4(1.f), glm::vec3(-0.5f, -0.5f, 0.f));
-    glm::mat4 S = glm::scale(glm::mat4(1.f), glm::vec3(120.f, 120.f, 10.f));
-    glm::mat4 R = glm::rotate(glm::mat4(1.f),
-        -glm::half_pi<float>(), glm::vec3(1,0,0));
-    m_terrainModel = R * S * T;
-
-    // cylinder shared mesh for preparing branches
-    m_treeCylinderMesh = getOrCreateMesh(PrimitiveType::PRIMITIVE_CYLINDER, 3, 8);
-
-    // coarse sphere mesh for leaves
-    m_leafMesh = getOrCreateMesh(PrimitiveType::PRIMITIVE_SPHERE, 3, 6);
-
-    m_drawForest = false; // off by default, controlled by EC4 checkbox.
-
-    // instancing attribute for branches
-    glBindVertexArray(m_treeCylinderMesh->vao);
-    glGenBuffers(1, &m_branchInstanceVBO);
-    glBindBuffer(GL_ARRAY_BUFFER, m_branchInstanceVBO);
-    // fill data in later use buildingForest().
-
-    // mat4 occupies 4 vec4 attributes: location 2, 3, 4, 5
-    std::size_t vec4Size = sizeof(glm::vec4);
-    GLsizei stride = sizeof(glm::mat4);
-    for (int i = 0; i < 4; ++i) {
-        GLuint loc = 2 + i;
-        glEnableVertexAttribArray(loc);
-        glVertexAttribPointer(loc, 4, GL_FLOAT, GL_FALSE, stride, (void*)(i * vec4Size));
-        glVertexAttribDivisor(loc, 1); // one copy per instance
-    }
-    glBindVertexArray(0);
-
-    // instancing attribute for leaves
-    glBindVertexArray(m_leafMesh->vao);
-    glGenBuffers(1, &m_leafInstanceVBO);
-    glBindBuffer(GL_ARRAY_BUFFER, m_leafInstanceVBO);
-
-    for (int i = 0; i < 4; ++i) {
-        GLuint loc = 2 + i;
-        glEnableVertexAttribArray(loc);
-        glVertexAttribPointer(loc, 4, GL_FLOAT, GL_FALSE,
-                              stride, (void*)(i * vec4Size));
-        glVertexAttribDivisor(loc, 1);
-    }
-    glBindVertexArray(0);
-
-    // Camera initial values (will be overridden by scene & settings)
-    m_cam.aspect = (height() > 0) ? float(width())/float(height()) : 1.f;
-    m_cam.nearP = settings.nearPlane;
-    m_cam.farP  = settings.farPlane;
-
-    m_glInitialized = true;
-}
-
-void Realtime::paintGL() {
-    // Students: anything requiring OpenGL calls every frame should be done here
-    if (!m_prog) { qWarning("m_prog==0 (shader not loaded)"); return; }
-    // if (m_drawList.empty()) qWarning("DrawList is empty; shapes parsed = %zu", m_rd.shapes.size());
-
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
+void Realtime::renderScene(){
     // global sun/ambient definition
     glm::vec3 sunDir   = glm::normalize(glm::vec3(0.3f, -1.0f, 0.2f));
     glm::vec3 sunColor = glm::vec3(2.5f);
@@ -896,6 +758,370 @@ void Realtime::paintGL() {
         }
     }
 }
+
+
+// ================== Rendering the Scene!
+
+Realtime::Realtime(QWidget *parent)
+    : QOpenGLWidget(parent)
+{
+    m_prev_mouse_pos = glm::vec2(size().width()/2, size().height()/2);
+    setMouseTracking(true);
+    setFocusPolicy(Qt::StrongFocus);
+
+    m_keyMap[Qt::Key_W]       = false;
+    m_keyMap[Qt::Key_A]       = false;
+    m_keyMap[Qt::Key_S]       = false;
+    m_keyMap[Qt::Key_D]       = false;
+    m_keyMap[Qt::Key_Control] = false;
+    m_keyMap[Qt::Key_Space]   = false;
+
+    // If you must use this function, do not edit anything above this
+}
+
+void Realtime::rebuildWaterMesh()
+{
+    // sea level in local space
+    float seaLocal = m_terrainParams.seaLevel * m_terrainParams.heightScale;
+
+    // Raise the water level slightly (in a localized area)
+    // multiply by the scale in model
+    // note: world size will be approximately 0.2.
+    float waterLocal = seaLocal + 0.02f * m_terrainParams.heightScale;
+
+    std::vector<float> verts;
+    verts.reserve(6 * 9); // two triangles, with a total of 6 vertices, each with 9 floats (PNC)
+
+    auto addV = [&](float x, float y, float z,
+                    float nx, float ny, float nz,
+                    float u, float v)
+    {
+        verts.push_back(x); verts.push_back(y); verts.push_back(z);
+        verts.push_back(nx); verts.push_back(ny); verts.push_back(nz);
+        verts.push_back(u);  verts.push_back(v);  verts.push_back(0.f); // third attribute used as UV
+    };
+
+    // z-up plane is then rotated into the y-up world using m_terrainModel.
+    glm::vec3 N(0.f, 0.f, 1.f);
+
+    // quad covers [0,1] x [0,1], with height seaLocal
+    addV(0.f, 0.f, waterLocal, N.x, N.y, N.z, 0.f, 0.f);
+    addV(1.f, 0.f, waterLocal, N.x, N.y, N.z, 1.f, 0.f);
+    addV(1.f, 1.f, waterLocal, N.x, N.y, N.z, 1.f, 1.f);
+
+    addV(0.f, 0.f, waterLocal, N.x, N.y, N.z, 0.f, 0.f);
+    addV(1.f, 1.f, waterLocal, N.x, N.y, N.z, 1.f, 1.f);
+    addV(0.f, 1.f, waterLocal, N.x, N.y, N.z, 0.f, 1.f);
+
+    m_waterMesh.uploadinterleavedPNC(verts);
+}
+
+void Realtime::finish() {
+    killTimer(m_timer);
+    this->makeCurrent();
+
+    // Students: anything requiring OpenGL calls when the program exits should be done here
+    destroyMeshCache();
+
+    if (m_prog) { glDeleteProgram(m_prog); m_prog = 0; }
+    if (m_progTerrain){ glDeleteProgram(m_progTerrain); m_progTerrain = 0; }
+    if (m_progWater)   { glDeleteProgram(m_progWater);   m_progWater   = 0; }
+    if (m_progSky)     { glDeleteProgram(m_progSky);     m_progSky     = 0; }
+    if (m_progForest)  { glDeleteProgram(m_progForest);  m_progForest  = 0; }
+
+    if (m_progPost)    { glDeleteProgram(m_progPost);    m_progPost    = 0; }
+    destroySceneFBO();
+    m_screenQuad.destroy();
+
+    this->doneCurrent();
+}
+
+void Realtime::initializeGL() {
+    m_devicePixelRatio = this->devicePixelRatio();
+
+    m_timer = startTimer(1000/60);
+    m_elapsedTimer.start();
+
+    // Initializing GL.
+    // GLEW (GL Extension Wrangler) provides access to OpenGL functions.
+    glewExperimental = GL_TRUE;
+    GLenum err = glewInit();
+    if (err != GLEW_OK) {
+        std::cerr << "Error while initializing GL: " << glewGetErrorString(err) << std::endl;
+    }
+    std::cout << "Initialized GL: Version " << glewGetString(GLEW_VERSION) << std::endl;
+
+    // Allows OpenGL to draw objects appropriately on top of one another
+    glEnable(GL_DEPTH_TEST);
+    // Tells OpenGL to only draw the front face
+    glEnable(GL_CULL_FACE);
+    // Tells OpenGL how big the screen is
+    glViewport(0, 0, size().width() * m_devicePixelRatio, size().height() * m_devicePixelRatio);
+
+    // Students: anything requiring OpenGL calls when the program starts should be done here
+    if (GLEW_VERSION_3_0 || GLEW_EXT_framebuffer_sRGB) {
+        glEnable(GL_FRAMEBUFFER_SRGB);
+    }
+
+    m_devicePixelRatio = this->devicePixelRatio();
+
+    glViewport(0, 0, size().width()*m_devicePixelRatio, size().height()*m_devicePixelRatio);
+
+    // Build shader program
+    try {
+        m_prog = ShaderLoader::createShaderProgram(
+            ":/resources/shaders/default.vert",
+            ":/resources/shaders/default.frag");
+    } catch (const std::exception& e) {
+        qWarning("Shader compile/link error: %s", e.what());
+        m_prog = 0;
+    }
+
+    // terrain shader
+    try {
+        m_progTerrain = ShaderLoader::createShaderProgram(
+            ":/resources/shaders/terrain.vert",
+            ":/resources/shaders/terrain.frag");
+    } catch (const std::exception& e) {
+        qWarning("Terrain shader compile/link error: %s", e.what());
+        m_progTerrain = 0;
+    }
+
+    // forest shader
+    try {
+        m_progForest = ShaderLoader::createShaderProgram(
+            ":/resources/shaders/forest.vert",
+            ":/resources/shaders/forest.frag");
+    } catch (const std::exception& e) {
+        qWarning("Terrain shader compile/link error: %s", e.what());
+        m_progTerrain = 0;
+    }
+
+    // water shader
+    try {
+        m_progWater = ShaderLoader::createShaderProgram(
+            ":/resources/shaders/water.vert",
+            ":/resources/shaders/water.frag");
+    } catch (const std::exception &e) {
+        qWarning("Water shader compile/link error: %s", e.what());
+        m_progWater = 0;
+    }
+
+    // sky shader
+    try {
+        m_progSky = ShaderLoader::createShaderProgram(
+            ":/resources/shaders/sky.vert",
+            ":/resources/shaders/sky.frag");
+    } catch (const std::exception &e) {
+        qWarning("Sky shader compile/link error: %s", e.what());
+        m_progSky = 0;
+    }
+
+    // use cube mesh as skybox
+    m_skyCube = getOrCreateMesh(PrimitiveType::PRIMITIVE_CUBE, 1, 1);
+
+    if (m_progTerrain) {
+        std::vector<float> interlPNC = m_terrainGen.generateTerrain();
+        m_terrainMesh.uploadinterleavedPNC(interlPNC);
+        m_hasTerrain = true;
+
+        // loading terrain textures
+        m_texGrassAlbedo = loadTexture2D(":/resources/textures/terrain/grass/albedo.jpg", false);
+        m_texRockAlbedo  = loadTexture2D(":/resources/textures/terrain/rock_beach/albedo.jpg", false);
+        m_texBeachAlbedo = loadTexture2D(":/resources/textures/terrain/beach/albedo.jpg", false);
+                m_texRockHighAlbedo = loadTexture2D(":/resources/textures/terrain/rock/albedo.jpg", false);
+        m_texSnowAlbedo = loadTexture2D(":/resources/textures/terrain/snow/albedo.jpg", false);
+
+        m_texGrassNormal = loadTexture2D(":/resources/textures/terrain/grass/normal.jpg", false);
+        m_texRockNormal  = loadTexture2D(":/resources/textures/terrain/rock_beach/normal.jpg", false);
+        m_texBeachNormal = loadTexture2D(":/resources/textures/terrain/beach/normal.jpg", false);
+                m_texRockHighNormal = loadTexture2D(":/resources/textures/terrain/rock/normal.jpg", false);
+        m_texWaterNormal = loadTexture2D(":/resources/textures/water_normal_tile.jpg", false);
+        m_texSnowNormal = loadTexture2D(":/resources/textures/terrain/snow/normal.jpg", false);
+
+        m_texGrassRough = loadTexture2D(":/resources/textures/terrain/grass/roughness.jpg", false);
+        m_texRockRough  = loadTexture2D(":/resources/textures/terrain/rock_beach/roughness.jpg", false);
+        m_texBeachRough = loadTexture2D(":/resources/textures/terrain/beach/roughness.jpg", false);
+        m_texRockHighRough  = loadTexture2D(":/resources/textures/terrain/rock/roughness.jpg", false);
+        m_texSnowRough  = loadTexture2D(":/resources/textures/terrain/snow/roughness.jpg", false);
+
+    } else {
+        m_hasTerrain = false;
+    }
+
+    // z-up (lab07) -> y-up (project) : translate center, scale, rotate -90° around +X
+    glm::mat4 T = glm::translate(glm::mat4(1.f), glm::vec3(-0.5f, -0.5f, 0.f));
+    glm::mat4 S = glm::scale(glm::mat4(1.f), glm::vec3(120.f, 120.f, 10.f));
+    glm::mat4 R = glm::rotate(glm::mat4(1.f),
+        -glm::half_pi<float>(), glm::vec3(1,0,0));
+    m_terrainModel = R * S * T;
+
+    // cylinder shared mesh for preparing branches
+    m_treeCylinderMesh = getOrCreateMesh(PrimitiveType::PRIMITIVE_CYLINDER, 3, 8);
+
+    // coarse sphere mesh for leaves
+    m_leafMesh = getOrCreateMesh(PrimitiveType::PRIMITIVE_SPHERE, 3, 6);
+
+    m_drawForest = false; // off by default, controlled by EC4 checkbox.
+
+    // instancing attribute for branches
+    glBindVertexArray(m_treeCylinderMesh->vao);
+    glGenBuffers(1, &m_branchInstanceVBO);
+    glBindBuffer(GL_ARRAY_BUFFER, m_branchInstanceVBO);
+    // fill data in later use buildingForest().
+
+    // mat4 occupies 4 vec4 attributes: location 2, 3, 4, 5
+    std::size_t vec4Size = sizeof(glm::vec4);
+    GLsizei stride = sizeof(glm::mat4);
+    for (int i = 0; i < 4; ++i) {
+        GLuint loc = 2 + i;
+        glEnableVertexAttribArray(loc);
+        glVertexAttribPointer(loc, 4, GL_FLOAT, GL_FALSE, stride, (void*)(i * vec4Size));
+        glVertexAttribDivisor(loc, 1); // one copy per instance
+    }
+    glBindVertexArray(0);
+
+    // instancing attribute for leaves
+    glBindVertexArray(m_leafMesh->vao);
+    glGenBuffers(1, &m_leafInstanceVBO);
+    glBindBuffer(GL_ARRAY_BUFFER, m_leafInstanceVBO);
+
+    for (int i = 0; i < 4; ++i) {
+        GLuint loc = 2 + i;
+        glEnableVertexAttribArray(loc);
+        glVertexAttribPointer(loc, 4, GL_FLOAT, GL_FALSE,
+                              stride, (void*)(i * vec4Size));
+        glVertexAttribDivisor(loc, 1);
+    }
+    glBindVertexArray(0);
+
+    // Camera initial values (will be overridden by scene & settings)
+    m_cam.aspect = (height() > 0) ? float(width())/float(height()) : 1.f;
+    m_cam.nearP = settings.nearPlane;
+    m_cam.farP  = settings.farPlane;
+
+    m_glInitialized = true;
+
+    // post-processing setup
+    try {
+        m_progPost = ShaderLoader::createShaderProgram(
+            ":/resources/shaders/post.vert",
+            ":/resources/shaders/post.frag");
+    } catch (const std::exception &e) {
+        qWarning("Post shader compile/link error: %s", e.what());
+        m_progPost = 0;
+    }
+
+    // fullscreen quad
+    createScreenQuad();
+
+    // initialize the scene FBO (current viewport size)
+    GLint vp[4];
+    glGetIntegerv(GL_VIEWPORT, vp);
+    ensureSceneFBO(vp[2], vp[3]);
+
+}
+
+void Realtime::paintGL() {
+    if (!m_progTerrain && !m_progWater && !m_progSky) {
+        qWarning("No scene shader loaded");
+        return;
+    }
+
+    // Record the FBO bound
+    GLint prevFBO = 0;
+    glGetIntegerv(GL_FRAMEBUFFER_BINDING, &prevFBO);
+
+    // Current viewport size
+    GLint vp[4];
+    glGetIntegerv(GL_VIEWPORT, vp);
+    int w = vp[2];
+    int h = vp[3];
+    if (w <= 0 || h <= 0) {
+        w = width()  * m_devicePixelRatio;
+        h = height() * m_devicePixelRatio;
+    }
+
+    // If the post shader fails to compile: draw directly onto the screen.
+    if (!m_progPost) {
+        glBindFramebuffer(GL_FRAMEBUFFER, prevFBO);
+        glViewport(0, 0, w, h);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        glEnable(GL_DEPTH_TEST);
+        renderScene();
+        return;
+    }
+
+    // Scene pass: Draw to m_fboScene
+    ensureSceneFBO(w, h);
+    glBindFramebuffer(GL_FRAMEBUFFER, m_fboScene);
+    glViewport(0, 0, w, h);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glEnable(GL_DEPTH_TEST);
+
+    renderScene();
+
+    // Post-processing pass
+
+    glBindFramebuffer(GL_FRAMEBUFFER, prevFBO);
+    glViewport(0, 0, w, h);
+
+    glDisable(GL_DEPTH_TEST);
+
+    glUseProgram(m_progPost);
+
+    // Bind scene color / depth texture
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, m_texSceneColor);
+    glUniform1i(glGetUniformLocation(m_progPost, "uSceneColor"), 0);
+
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, m_texSceneDepth);
+    glUniform1i(glGetUniformLocation(m_progPost, "uSceneDepth"), 1);
+
+    // Camera near/far, used for depth linearization
+    glUniform1f(glGetUniformLocation(m_progPost, "uNear"), m_cam.nearP);
+    glUniform1f(glGetUniformLocation(m_progPost, "uFar"),  m_cam.farP);
+
+    // Select the preset and exposure based on the two checkboxes in the UI
+    int   preset   = settings.colorGradePreset;  // 0 = none, 1 = cold, 3 = rainy
+    float exposure = 0.0f;
+    float strength = 0.0f; // color intensity
+
+    if (preset == 1) {
+        // Cold Blue Snow Mountain
+        exposure = 0.18f;
+        strength = 0.85f;
+    } else if (preset == 3) {
+        // Rainy
+        exposure = -0.18f;
+        strength = 0.90f;
+    } else {
+        // Default
+        exposure = 0.0f;
+        strength = 0.0f;
+    }
+
+    glUniform1f(glGetUniformLocation(m_progPost, "uExposure"), exposure);
+
+    // Adjustable: neutral lift/gamma/gain specs (modified in shader post.frag)
+    glUniform3f(glGetUniformLocation(m_progPost, "uLift"),  0.0f, 0.0f, 0.0f);
+    glUniform3f(glGetUniformLocation(m_progPost, "uGamma"), 1.0f, 1.0f, 1.0f);
+    glUniform3f(glGetUniformLocation(m_progPost, "uGain"),  1.0f, 1.0f, 1.0f);
+
+    // Transmit preset + intensity
+    glUniform1i(glGetUniformLocation(m_progPost, "uGradePreset"), preset);
+    glUniform1f(glGetUniformLocation(m_progPost, "uGradeStrength"), strength);
+
+    // Adjustable: default tint (modified in shader post.frag)
+    glUniform3f(glGetUniformLocation(m_progPost, "uTint"), 1.0f, 1.0f, 1.0f);
+
+    // Draw a full-screen quad, and output the processed result to prevFBO (screen or screenshot FBO).
+    m_screenQuad.draw();
+
+    glEnable(GL_DEPTH_TEST);
+}
+
 
 void Realtime::resizeGL(int w, int h) {
     // Students: anything requiring OpenGL calls when the program starts should be done here

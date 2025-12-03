@@ -36,6 +36,8 @@ private:
     void connectSaveImage();
     void connectExtraCredit();
 
+    void connectColorGrade();
+
     Realtime *realtime;
     AspectRatioWidget *aspectRatioWidget;
 
@@ -68,6 +70,9 @@ private:
     QCheckBox *ec3;
     QCheckBox *ec4;
 
+    QCheckBox *checkBoxColdBlue = nullptr;
+    QCheckBox *checkBoxRainy    = nullptr;
+
 private slots:
     // From old Project 6
     // void onPerPixelFilter();
@@ -91,4 +96,7 @@ private slots:
     void onExtraCredit2();
     void onExtraCredit3();
     void onExtraCredit4();
+
+    void on_checkBoxColdBlue_toggled(bool checked);
+    void on_checkBoxRainy_toggled(bool checked);
 };

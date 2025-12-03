@@ -19,6 +19,10 @@ struct Settings {
     bool extraCredit2 = false;
     bool extraCredit3 = false;
     bool extraCredit4 = false;
+
+    // Post‑processing / color grading
+    // 0 = off, 1 = cold blue, 3 = rainy / overcast
+    int colorGradePreset = 0;
 };
 
 

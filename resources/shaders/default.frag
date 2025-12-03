@@ -7,7 +7,6 @@ out vec4 fragColor;
 
 uniform vec3 uEye;
 
-// 全局太阳 + 环境光（和 terrain 一致）
 uniform vec3 uSunDir;       // FROM light TO scene
 uniform vec3 uSunColor;
 uniform vec3 uAmbientColor;

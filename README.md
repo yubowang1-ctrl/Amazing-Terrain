@@ -1,25 +1,4 @@
-# CS 1230 Project 6: Final Project Gear Up
-
-## Project Overview
-
-This project extends the Realtime rendering pipeline to create a procedurally generated natural landscape featuring terrain (refined on Lab07 stencil code) with multi-layer PBR texturing, animated water, procedural vegetation using L-Systems, and atmospheric fog effects.
-
-## Testing
-
----
-
-## Implemented Features
-
-| Feature | Difficulty | Points |
-|---------|------------|--------|
-| L-Systems | ⭐⭐ | 40 |
-| Instanced Rendering | ⭐ | 20 |
-| Normal Mapping | ⭐⭐ | 40 |
-| Scrolling Textures | ⭐ | 20 |
-| Realtime Fog | ⭐ | 20 |
-| **Total** | | **140** |
-
----
+# CS 1230 Project 7: Beauty Mountain
 
 ## Design Choices
 
@@ -210,6 +189,47 @@ Fog color `(0.55, 0.70, 0.90)` matches the sky horizon, creating seamless atmosp
 
 ---
 
+### Post-Processing Pipeline & Color Grading
+
+**Files:** `shaders/post.frag`, `shaders/post.frag`, src/realtime.cpp
+
+1. Scene Pass -> HDR Off-Screen FBO
+All geometry (terrain, water, sky, L-system forest) is rendered into:
+- `m_texSceneColor` — RGBA16F HDR color buffer
+- `m_texSceneDepth` — Depth24 buffer
+This allows: HDR lighting accumulation, depth-aware effects (fog, atmospheric falloff), a clean separation between rendering and color styling
+
+2. Post-Processing Pass -> Full-screen Quad
+A second pass runs a custom shader on a screen-filling quad:
+- Tonemapping (Reinhard)
+- Exposure control (EV/stop-based)
+- Depth linearization
+- Fog reconstruction
+- Color grading via Lift / Gamma / Gain / Tint
+- Mode-dependent LUT-like transformations
+
+#### Weather Presets via Color Grading
+We added two cinematic grading presets, toggled by UI checkboxes:
+
+#### Cold Blue (Snowy/Mountain)
+- Slight exposure boost
+- Cooler tint (blue-leaning)
+- Higher contrast
+- Crisp atmosphere
+
+This preset enhances the clarity of mountains and snow regions.
+
+#### Rainy / Overcast
+A physically motivated grey-blue “rainy day” look:
+- Strong desaturation (mixing toward luminance)
+- Gamma lift -> reduced mid-tone contrast
+- Gain reduction -> softer highlights
+- Significant depth-based fog -> low visibility, washed distance
+- Cool grey tint
+
+This yields a believable “fog-eats-the-horizon” atmosphere seen in rainy environments.
+
+
 ## UI Controls
 
 | Slider | Effect |
@@ -227,6 +247,8 @@ Fog color `(0.55, 0.70, 0.90)` matches the sky horizon, creating seamless atmosp
 | EC2 | Crater generation |
 | EC3 | Ridged-noise river valleys |
 | EC4 | L-System forest rendering |
+| Cold Blue | Cold Blue filter |
+| Rainy | Rainy filter |
 
 ---
 
@@ -264,6 +286,7 @@ Fog color `(0.55, 0.70, 0.90)` matches the sky horizon, creating seamless atmosp
 │   │   ├── forest.vert/frag        # Instanced vegetation
 │   │   ├── sky.vert/frag           # Procedural sky gradient
 │   │   └── default.vert/frag       # Basic Phong shader
+│   │   └── post.vert/frag          # Postprocessing pipeline + Color grading
 │   └── textures/                   # PBR texture sets
 │
 └── src/

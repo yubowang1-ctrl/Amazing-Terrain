@@ -127,9 +127,8 @@ qt6_add_resources(${PROJECT_NAME} "Resources"
         resources/shaders/sky.frag
         resources/shaders/sky.vert
 
-        # resources/shaders/post_fullscreen.vert
-        # resources/shaders/post_fog.frag
-        # resources/shaders/post_tonemap.frag
+        resources/shaders/post.frag
+        resources/shaders/post.vert
 )
 # qt_add_resources(${PROJECT_NAME} "res"
 #   PREFIX

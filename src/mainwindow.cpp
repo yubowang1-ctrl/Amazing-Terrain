@@ -56,6 +56,19 @@ void MainWindow::initialize() {
     QLabel *far_label = new QLabel(); // Far plane label
     far_label->setText("Far Plane:");
 
+    // color grading UI
+    QLabel *grade_label = new QLabel();
+    grade_label->setText("Color Grading");
+    grade_label->setFont(font);
+
+    checkBoxColdBlue = new QCheckBox();
+    checkBoxColdBlue->setText(QStringLiteral("Cold Blue (Snowy)"));
+    checkBoxColdBlue->setChecked(settings.colorGradePreset == 1);
+
+    checkBoxRainy = new QCheckBox();
+    checkBoxRainy->setText(QStringLiteral("Rainy / Overcast"));
+    checkBoxRainy->setChecked(settings.colorGradePreset == 2);
+
 
     // From old Project 6
     // // Create checkbox for per-pixel filter
@@ -285,6 +298,10 @@ void MainWindow::initialize() {
     vLayout->addWidget(ec3);
     vLayout->addWidget(ec4);
 
+    vLayout->addWidget(grade_label);
+    vLayout->addWidget(checkBoxColdBlue);
+    vLayout->addWidget(checkBoxRainy);
+
     connectUIElements();
 
     // Set default values of 5 for tesselation parameters
@@ -322,6 +339,7 @@ void MainWindow::connectUIElements() {
     connectNear();
     connectFar();
     connectExtraCredit();
+    connectColorGrade();
 }
 
 
@@ -398,6 +416,17 @@ void MainWindow::connectExtraCredit() {
     connect(ec2, &QCheckBox::clicked, this, &MainWindow::onExtraCredit2);
     connect(ec3, &QCheckBox::clicked, this, &MainWindow::onExtraCredit3);
     connect(ec4, &QCheckBox::clicked, this, &MainWindow::onExtraCredit4);
+}
+
+void MainWindow::connectColorGrade() {
+    if (checkBoxColdBlue) {
+        connect(checkBoxColdBlue, &QCheckBox::toggled,
+                this, &MainWindow::on_checkBoxColdBlue_toggled);
+    }
+    if (checkBoxRainy) {
+        connect(checkBoxRainy, &QCheckBox::toggled,
+                this, &MainWindow::on_checkBoxRainy_toggled);
+    }
 }
 
 // From old Project 6
@@ -545,3 +574,38 @@ void MainWindow::onExtraCredit4() {
     settings.extraCredit4 = !settings.extraCredit4;
     realtime->settingsChanged();
 }
+
+void MainWindow::on_checkBoxColdBlue_toggled(bool checked)
+{
+    if (checked) {
+        if (checkBoxRainy) {
+            checkBoxRainy->setChecked(false);
+        }
+        settings.colorGradePreset = 1;
+    } else {
+        if (!checkBoxRainy || !checkBoxRainy->isChecked()) {
+            settings.colorGradePreset = 0;
+        }
+    }
+
+    realtime->update();
+}
+
+void MainWindow::on_checkBoxRainy_toggled(bool checked)
+{
+    if (checked) {
+        if (checkBoxColdBlue) {
+            checkBoxColdBlue->setChecked(false);
+        }
+        settings.colorGradePreset = 3;
+    } else {
+        if (!checkBoxColdBlue || !checkBoxColdBlue->isChecked()) {
+            settings.colorGradePreset = 0;
+        }
+    }
+
+    realtime->update();
+}
+
+
+
