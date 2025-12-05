@@ -1,0 +1,19 @@
+# Build directories
+build/
+bin/
+lib/
+
+# Qt specific
+*.user
+*.qch
+*.docset
+
+# macOS
+.DS_Store
+
+# Object files
+*.o
+*.obj
+*.dylib
+*.so
+*.a

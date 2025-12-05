@@ -8,15 +8,29 @@
 #include <QLabel>
 #include <QGroupBox>
 #include <iostream>
+#include <QScrollArea>
 
-void MainWindow::initialize() {
+void MainWindow::initialize()
+{
     realtime = new Realtime;
     aspectRatioWidget = new AspectRatioWidget(this);
-    aspectRatioWidget->setAspectWidget(realtime, 3.f/4.f);
-    QHBoxLayout *hLayout = new QHBoxLayout; // horizontal alignment
+    aspectRatioWidget->setAspectWidget(realtime, 3.f / 4.f);
+    QHBoxLayout *hLayout = new QHBoxLayout;   // horizontal alignment
     QVBoxLayout *vLayout = new QVBoxLayout(); // vertical alignment
     vLayout->setAlignment(Qt::AlignTop);
-    hLayout->addLayout(vLayout);
+
+    // Create a container widget for the settings
+    QWidget *settingsContainer = new QWidget();
+    settingsContainer->setLayout(vLayout);
+
+    // Create a scroll area
+    QScrollArea *scrollArea = new QScrollArea();
+    scrollArea->setWidget(settingsContainer);
+    scrollArea->setWidgetResizable(true);
+    scrollArea->setFixedWidth(300); // Set a fixed width for the settings panel
+    scrollArea->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+
+    hLayout->addWidget(scrollArea);
     hLayout->addWidget(aspectRatioWidget, 1);
     this->setLayout(hLayout);
 
@@ -69,7 +83,6 @@ void MainWindow::initialize() {
     checkBoxRainy->setText(QStringLiteral("Rainy / Overcast"));
     checkBoxRainy->setChecked(settings.colorGradePreset == 2);
 
-
     // From old Project 6
     // // Create checkbox for per-pixel filter
     // filter1 = new QCheckBox();
@@ -83,7 +96,7 @@ void MainWindow::initialize() {
     // Create file uploader for scene file
     // uploadFile = new QPushButton();
     // uploadFile->setText(QStringLiteral("Upload Scene File"));
-    
+
     // saveImage = new QPushButton();
     // saveImage->setText(QStringLiteral("Save Image"));
 
@@ -319,15 +332,17 @@ void MainWindow::initialize() {
     onValChangeFarBox(10.f);
 }
 
-void MainWindow::finish() {
+void MainWindow::finish()
+{
     realtime->finish();
-    delete(realtime);
+    delete (realtime);
 }
 
-void MainWindow::connectUIElements() {
+void MainWindow::connectUIElements()
+{
     // From old Project 6
-    //connectPerPixelFilter();
-    //connectKernelBasedFilter();
+    // connectPerPixelFilter();
+    // connectKernelBasedFilter();
     // connectUploadFile();
     // connectSaveImage();
     connectParam1();
@@ -341,7 +356,6 @@ void MainWindow::connectUIElements() {
     connectExtraCredit();
     connectColorGrade();
 }
-
 
 // From old Project 6
 // void MainWindow::connectPerPixelFilter() {
@@ -359,71 +373,83 @@ void MainWindow::connectUIElements() {
 //     connect(saveImage, &QPushButton::clicked, this, &MainWindow::onSaveImage);
 // }
 
-void MainWindow::connectParam1() {
+void MainWindow::connectParam1()
+{
     connect(p1Slider, &QSlider::valueChanged, this, &MainWindow::onValChangeP1);
-    connect(p1Box, static_cast<void(QSpinBox::*)(int)>(&QSpinBox::valueChanged),
+    connect(p1Box, static_cast<void (QSpinBox::*)(int)>(&QSpinBox::valueChanged),
             this, &MainWindow::onValChangeP1);
 }
 
-void MainWindow::connectParam2() {
+void MainWindow::connectParam2()
+{
     connect(p2Slider, &QSlider::valueChanged, this, &MainWindow::onValChangeP2);
-    connect(p2Box, static_cast<void(QSpinBox::*)(int)>(&QSpinBox::valueChanged),
+    connect(p2Box, static_cast<void (QSpinBox::*)(int)>(&QSpinBox::valueChanged),
             this, &MainWindow::onValChangeP2);
 }
 
-void MainWindow::connectParam3() {
+void MainWindow::connectParam3()
+{
     connect(p3Slider, &QSlider::valueChanged,
             this, &MainWindow::onValChangeP3);
-    connect(p3Box, static_cast<void(QSpinBox::*)(int)>(&QSpinBox::valueChanged),
+    connect(p3Box, static_cast<void (QSpinBox::*)(int)>(&QSpinBox::valueChanged),
             this, &MainWindow::onValChangeP3);
 }
 
-void MainWindow::connectParam4() {
+void MainWindow::connectParam4()
+{
     connect(p4Slider, &QSlider::valueChanged,
             this, &MainWindow::onValChangeP4);
-    connect(p4Box, static_cast<void(QSpinBox::*)(int)>(&QSpinBox::valueChanged),
+    connect(p4Box, static_cast<void (QSpinBox::*)(int)>(&QSpinBox::valueChanged),
             this, &MainWindow::onValChangeP4);
 }
 
-void MainWindow::connectParam5() {
+void MainWindow::connectParam5()
+{
     connect(p5Slider, &QSlider::valueChanged,
             this, &MainWindow::onValChangeP5);
-    connect(p5Box, static_cast<void(QSpinBox::*)(int)>(&QSpinBox::valueChanged),
+    connect(p5Box, static_cast<void (QSpinBox::*)(int)>(&QSpinBox::valueChanged),
             this, &MainWindow::onValChangeP5);
 }
 
-void MainWindow::connectParam6() {
+void MainWindow::connectParam6()
+{
     connect(p6Slider, &QSlider::valueChanged,
             this, &MainWindow::onValChangeP6);
-    connect(p6Box, static_cast<void(QSpinBox::*)(int)>(&QSpinBox::valueChanged),
+    connect(p6Box, static_cast<void (QSpinBox::*)(int)>(&QSpinBox::valueChanged),
             this, &MainWindow::onValChangeP6);
 }
 
-void MainWindow::connectNear() {
+void MainWindow::connectNear()
+{
     connect(nearSlider, &QSlider::valueChanged, this, &MainWindow::onValChangeNearSlider);
-    connect(nearBox, static_cast<void(QDoubleSpinBox::*)(double)>(&QDoubleSpinBox::valueChanged),
+    connect(nearBox, static_cast<void (QDoubleSpinBox::*)(double)>(&QDoubleSpinBox::valueChanged),
             this, &MainWindow::onValChangeNearBox);
 }
 
-void MainWindow::connectFar() {
+void MainWindow::connectFar()
+{
     connect(farSlider, &QSlider::valueChanged, this, &MainWindow::onValChangeFarSlider);
-    connect(farBox, static_cast<void(QDoubleSpinBox::*)(double)>(&QDoubleSpinBox::valueChanged),
+    connect(farBox, static_cast<void (QDoubleSpinBox::*)(double)>(&QDoubleSpinBox::valueChanged),
             this, &MainWindow::onValChangeFarBox);
 }
 
-void MainWindow::connectExtraCredit() {
+void MainWindow::connectExtraCredit()
+{
     connect(ec1, &QCheckBox::clicked, this, &MainWindow::onExtraCredit1);
     connect(ec2, &QCheckBox::clicked, this, &MainWindow::onExtraCredit2);
     connect(ec3, &QCheckBox::clicked, this, &MainWindow::onExtraCredit3);
     connect(ec4, &QCheckBox::clicked, this, &MainWindow::onExtraCredit4);
 }
 
-void MainWindow::connectColorGrade() {
-    if (checkBoxColdBlue) {
+void MainWindow::connectColorGrade()
+{
+    if (checkBoxColdBlue)
+    {
         connect(checkBoxColdBlue, &QCheckBox::toggled,
                 this, &MainWindow::on_checkBoxColdBlue_toggled);
     }
-    if (checkBoxRainy) {
+    if (checkBoxRainy)
+    {
         connect(checkBoxRainy, &QCheckBox::toggled,
                 this, &MainWindow::on_checkBoxRainy_toggled);
     }
@@ -482,108 +508,126 @@ void MainWindow::connectColorGrade() {
 //     realtime->saveViewportImage(filePath.toStdString());
 // }
 
-void MainWindow::onValChangeP1(int newValue) {
+void MainWindow::onValChangeP1(int newValue)
+{
     p1Slider->setValue(newValue);
     p1Box->setValue(newValue);
     settings.shapeParameter1 = p1Slider->value();
     realtime->settingsChanged();
 }
 
-void MainWindow::onValChangeP2(int newValue) {
+void MainWindow::onValChangeP2(int newValue)
+{
     p2Slider->setValue(newValue);
     p2Box->setValue(newValue);
     settings.shapeParameter2 = p2Slider->value();
     realtime->settingsChanged();
 }
 
-void MainWindow::onValChangeP3(int newValue) {
+void MainWindow::onValChangeP3(int newValue)
+{
     p3Slider->setValue(newValue);
     p3Box->setValue(newValue);
-    settings.shapeParameter3 = p3Slider->value();   // tile number
+    settings.shapeParameter3 = p3Slider->value(); // tile number
     realtime->settingsChanged();
 }
 
-void MainWindow::onValChangeP4(int newValue) {
+void MainWindow::onValChangeP4(int newValue)
+{
     p4Slider->setValue(newValue);
     p4Box->setValue(newValue);
-    settings.shapeParameter4 = p4Slider->value();   // tile number
+    settings.shapeParameter4 = p4Slider->value(); // tile number
     realtime->settingsChanged();
 }
 
-void MainWindow::onValChangeP5(int newValue) {
+void MainWindow::onValChangeP5(int newValue)
+{
     p5Slider->setValue(newValue);
     p5Box->setValue(newValue);
     settings.shapeParameter5 = p5Slider->value();
     realtime->settingsChanged();
 }
 
-void MainWindow::onValChangeP6(int newValue) {
+void MainWindow::onValChangeP6(int newValue)
+{
     p6Slider->setValue(newValue);
     p6Box->setValue(newValue);
     settings.shapeParameter6 = p6Slider->value();
     realtime->settingsChanged();
 }
 
-
-void MainWindow::onValChangeNearSlider(int newValue) {
-    //nearSlider->setValue(newValue);
-    nearBox->setValue(newValue/100.f);
+void MainWindow::onValChangeNearSlider(int newValue)
+{
+    // nearSlider->setValue(newValue);
+    nearBox->setValue(newValue / 100.f);
     settings.nearPlane = nearBox->value();
     realtime->settingsChanged();
 }
 
-void MainWindow::onValChangeFarSlider(int newValue) {
-    //farSlider->setValue(newValue);
-    farBox->setValue(newValue/100.f);
+void MainWindow::onValChangeFarSlider(int newValue)
+{
+    // farSlider->setValue(newValue);
+    farBox->setValue(newValue / 100.f);
     settings.farPlane = farBox->value();
     realtime->settingsChanged();
 }
 
-void MainWindow::onValChangeNearBox(double newValue) {
-    nearSlider->setValue(int(newValue*100.f));
-    //nearBox->setValue(newValue);
+void MainWindow::onValChangeNearBox(double newValue)
+{
+    nearSlider->setValue(int(newValue * 100.f));
+    // nearBox->setValue(newValue);
     settings.nearPlane = nearBox->value();
     realtime->settingsChanged();
 }
 
-void MainWindow::onValChangeFarBox(double newValue) {
-    farSlider->setValue(int(newValue*100.f));
-    //farBox->setValue(newValue);
+void MainWindow::onValChangeFarBox(double newValue)
+{
+    farSlider->setValue(int(newValue * 100.f));
+    // farBox->setValue(newValue);
     settings.farPlane = farBox->value();
     realtime->settingsChanged();
 }
 
 // Extra Credit:
 
-void MainWindow::onExtraCredit1() {
+void MainWindow::onExtraCredit1()
+{
     settings.extraCredit1 = !settings.extraCredit1;
     realtime->settingsChanged();
 }
 
-void MainWindow::onExtraCredit2() {
+void MainWindow::onExtraCredit2()
+{
     settings.extraCredit2 = !settings.extraCredit2;
     realtime->settingsChanged();
 }
 
-void MainWindow::onExtraCredit3() {
+void MainWindow::onExtraCredit3()
+{
     settings.extraCredit3 = !settings.extraCredit3;
     realtime->settingsChanged();
 }
 
-void MainWindow::onExtraCredit4() {
+void MainWindow::onExtraCredit4()
+{
     settings.extraCredit4 = !settings.extraCredit4;
     realtime->settingsChanged();
 }
 
 void MainWindow::on_checkBoxColdBlue_toggled(bool checked)
 {
-    if (checked) {
-        if (checkBoxRainy) {
+    if (checked)
+    {
+        if (checkBoxRainy)
+        {
             checkBoxRainy->setChecked(false);
         }
         settings.colorGradePreset = 1;
-    } else {
-        if (!checkBoxRainy || !checkBoxRainy->isChecked()) {
+    }
+    else
+    {
+        if (!checkBoxRainy || !checkBoxRainy->isChecked())
+        {
             settings.colorGradePreset = 0;
         }
     }
@@ -593,19 +637,21 @@ void MainWindow::on_checkBoxColdBlue_toggled(bool checked)
 
 void MainWindow::on_checkBoxRainy_toggled(bool checked)
 {
-    if (checked) {
-        if (checkBoxColdBlue) {
+    if (checked)
+    {
+        if (checkBoxColdBlue)
+        {
             checkBoxColdBlue->setChecked(false);
         }
         settings.colorGradePreset = 3;
-    } else {
-        if (!checkBoxColdBlue || !checkBoxColdBlue->isChecked()) {
+    }
+    else
+    {
+        if (!checkBoxColdBlue || !checkBoxColdBlue->isChecked())
+        {
             settings.colorGradePreset = 0;
         }
     }
 
     realtime->update();
 }
-
-
-

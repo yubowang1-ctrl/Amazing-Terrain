@@ -60,6 +60,9 @@ add_executable(${PROJECT_NAME}
     # src/terrain/voxel_chunk.cpp
     src/terrain/terraingenerator.h src/terrain/terraingenerator.cpp
     src/vegetation/lsystem_tree.h src/vegetation/lsystem_tree.cpp
+    src/particles/particle.h
+    src/particles/particlesystem.h
+    src/particles/particlesystem.cpp
     README.md
     # src/terrain/terrainsystem.cpp
     # src/terrain/terrainsystem.h
@@ -129,6 +132,9 @@ qt6_add_resources(${PROJECT_NAME} "Resources"
 
         resources/shaders/post.frag
         resources/shaders/post.vert
+
+        resources/shaders/particle.frag
+        resources/shaders/particle.vert
 )
 # qt_add_resources(${PROJECT_NAME} "res"
 #   PREFIX
