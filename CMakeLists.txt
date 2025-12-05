@@ -40,6 +40,7 @@ add_executable(${PROJECT_NAME}
     src/mainwindow.h
     src/realtime.h
     src/settings.h
+    src/lut_utils.h
     src/utils/scenedata.h
     src/utils/scenefilereader.h
     src/utils/sceneparser.h
@@ -61,6 +62,7 @@ add_executable(${PROJECT_NAME}
     src/terrain/terraingenerator.h src/terrain/terraingenerator.cpp
     src/vegetation/lsystem_tree.h src/vegetation/lsystem_tree.cpp
     README.md
+    resources/shaders/default.frag resources/shaders/default.vert resources/shaders/forest.frag resources/shaders/forest.vert resources/shaders/post.frag resources/shaders/post.vert resources/shaders/sky.frag resources/shaders/sky.vert resources/shaders/terrain.frag resources/shaders/terrain.vert resources/shaders/water.frag resources/shaders/water.vert resources/textures/terrain/beach/albedo.jpg resources/textures/terrain/beach/ao.jpg resources/textures/terrain/beach/displacement.jpg resources/textures/terrain/beach/normal.jpg resources/textures/terrain/beach/roughness.jpg resources/textures/terrain/beach/Sand_Fine_tdsmeeko_surface_Preview.png resources/textures/terrain/beach/tdsmeeko_2K_Displacement.exr resources/textures/terrain/grass/albedo.jpg resources/textures/terrain/grass/ao.jpg resources/textures/terrain/grass/displacement.jpg resources/textures/terrain/grass/normal.jpg resources/textures/terrain/grass/roughness.jpg resources/textures/terrain/grass/vb2mdatlw_2K_Displacement.exr resources/textures/terrain/rock/albedo.jpg resources/textures/terrain/rock/displacement.jpg resources/textures/terrain/rock/normal.jpg resources/textures/terrain/rock/roughness.jpg resources/textures/terrain/rock/vdyoaif_2K_AO.jpg resources/textures/terrain/rock/vdyoaif_2K_Displacement.exr resources/textures/terrain/rock_beach/albedo.jpg resources/textures/terrain/rock_beach/ao.jpg resources/textures/terrain/rock_beach/displacement.jpg resources/textures/terrain/rock_beach/normal.jpg resources/textures/terrain/rock_beach/roughness.jpg resources/textures/terrain/rock_beach/ulmiccvlw_2K_Displacement.exr resources/textures/terrain/snow/albedo.jpg resources/textures/terrain/snow/ao.jpg resources/textures/terrain/snow/displacement.jpg resources/textures/terrain/snow/normal.jpg resources/textures/terrain/snow/roughness.jpg resources/textures/terrain/snow/Snow_Mixed_vcqnfdk_surface_Preview.png resources/textures/terrain/snow/vcqnfdk_2K_Displacement.exr resources/textures/terrain/snow/vcqnfdk_2K_Transmission.jpg resources/textures/water_normal_tile.jpg
     # src/terrain/terrainsystem.cpp
     # src/terrain/terrainsystem.h
 

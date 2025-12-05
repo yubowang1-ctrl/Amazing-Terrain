@@ -118,6 +118,28 @@ void Realtime::destroyMeshCache()
     m_meshCache.clear();  // clear map
 }
 
+void Realtime::calculateFrustumCorners(glm::vec3 corners[4]) const {
+    float aspect = m_cam.aspect;
+    float fovY = m_cam.fovyRad;
+    float nearDist = m_cam.nearP;
+
+    float nearHeight = 2.0f * nearDist * std::tan(fovY * 0.5f);
+    float nearWidth = nearHeight * aspect;
+
+    glm::vec3 forward = glm::normalize(m_cam.look);
+    glm::vec3 right = glm::normalize(glm::cross(forward, m_cam.up));
+    glm::vec3 up = glm::normalize(glm::cross(right, forward));
+
+    glm::vec3 nearCenter = m_cam.eye + forward * nearDist;
+    glm::vec3 halfRight = right * (nearWidth * 0.5f);
+    glm::vec3 halfUp = up * (nearHeight * 0.5f);
+
+    corners[0] = (nearCenter - halfRight + halfUp) - m_cam.eye;
+    corners[1] = (nearCenter + halfRight + halfUp) - m_cam.eye;
+    corners[2] = (nearCenter - halfRight - halfUp) - m_cam.eye;
+    corners[3] = (nearCenter + halfRight - halfUp) - m_cam.eye;
+}
+
 void Realtime::buildForest() {
     const size_t maxBranches = 800000;
     const size_t maxLeaves   = 1600000;
@@ -833,6 +855,11 @@ void Realtime::finish() {
     destroySceneFBO();
     m_screenQuad.destroy();
 
+    if (m_texColorLUT) {
+        glDeleteTextures(1, &m_texColorLUT);
+        m_texColorLUT = 0;
+    }
+
     this->doneCurrent();
 }
 
@@ -944,10 +971,12 @@ void Realtime::initializeGL() {
         m_texBeachRough = loadTexture2D(":/resources/textures/terrain/beach/roughness.jpg", false);
         m_texRockHighRough  = loadTexture2D(":/resources/textures/terrain/rock/roughness.jpg", false);
         m_texSnowRough  = loadTexture2D(":/resources/textures/terrain/snow/roughness.jpg", false);
-
     } else {
         m_hasTerrain = false;
     }
+
+    std::vector<float> lutData = LUTUtils::generateIdentityLUT(m_lutSize);
+    m_texColorLUT = LUTUtils::createLUT3DTexture(m_lutSize, lutData);
 
     // z-up (lab07) -> y-up (project) : translate center, scale, rotate -90° around +X
     glm::mat4 T = glm::translate(glm::mat4(1.f), glm::vec3(-0.5f, -0.5f, 0.f));
@@ -1082,6 +1111,35 @@ void Realtime::paintGL() {
     // Camera near/far, used for depth linearization
     glUniform1f(glGetUniformLocation(m_progPost, "uNear"), m_cam.nearP);
     glUniform1f(glGetUniformLocation(m_progPost, "uFar"),  m_cam.farP);
+
+    // Bind 3D LUT texture
+    glActiveTexture(GL_TEXTURE2);
+    glBindTexture(GL_TEXTURE_3D, m_texColorLUT);
+    glUniform1i(glGetUniformLocation(m_progPost, "uColorLUT"), 2);
+
+    // Camera position and view direction
+    glUniform3fv(glGetUniformLocation(m_progPost, "uCameraPos"), 1, &m_cam.eye[0]);
+    glUniform3fv(glGetUniformLocation(m_progPost, "uCameraView"), 1, &m_cam.look[0]);
+
+    // Frustum corners
+    glm::vec3 frustumCorners[4];
+    calculateFrustumCorners(frustumCorners);
+    glUniform3fv(glGetUniformLocation(m_progPost, "uFrustumNearTL"), 1, &frustumCorners[0][0]);
+    glUniform3fv(glGetUniformLocation(m_progPost, "uFrustumNearTR"), 1, &frustumCorners[1][0]);
+    glUniform3fv(glGetUniformLocation(m_progPost, "uFrustumNearBL"), 1, &frustumCorners[2][0]);
+    glUniform3fv(glGetUniformLocation(m_progPost, "uFrustumNearBR"), 1, &frustumCorners[3][0]);
+
+    // Fog parameters
+    glUniform1i(glGetUniformLocation(m_progPost, "uEnableFog"), m_enableFog ? 1 : 0);
+    glUniform1i(glGetUniformLocation(m_progPost, "uEnableHeightFog"), m_enableHeightFog ? 1 : 0);
+    glUniform3fv(glGetUniformLocation(m_progPost, "uFogColor"), 1, &m_fogColor[0]);
+    glUniform1f(glGetUniformLocation(m_progPost, "uFogDensity"), m_fogDensity);
+    glUniform1f(glGetUniformLocation(m_progPost, "uFogHeightFalloff"), m_fogHeightFalloff);
+    glUniform1f(glGetUniformLocation(m_progPost, "uFogStart"), m_fogStart);
+
+    // Color LUT parameters
+    glUniform1i(glGetUniformLocation(m_progPost, "uEnableColorLUT"), m_enableColorLUT ? 1 : 0);
+    glUniform1f(glGetUniformLocation(m_progPost, "uLUTSize"), static_cast<float>(m_lutSize));
 
     // Select the preset and exposure based on the two checkboxes in the UI
     int   preset   = settings.colorGradePreset;  // 0 = none, 1 = cold, 3 = rainy
@@ -1254,6 +1312,34 @@ void Realtime::settingsChanged() {
 
 void Realtime::keyPressEvent(QKeyEvent *event) {
     m_keyMap[Qt::Key(event->key())] = true;
+
+    // Fog toggle
+    if (event->key() == Qt::Key_F) {
+        m_enableFog = !m_enableFog;
+        update();
+    }
+
+    // Color LUT toggle
+    if (event->key() == Qt::Key_L) {
+        m_enableColorLUT = !m_enableColorLUT;
+        update();
+    }
+
+    // LUT Preset 1: Warm/Golden
+    if (event->key() == Qt::Key_1) {
+        std::vector<float> lutData = LUTUtils::generateStyledLUT(m_lutSize, 1);
+        glDeleteTextures(1, &m_texColorLUT);
+        m_texColorLUT = LUTUtils::createLUT3DTexture(m_lutSize, lutData);
+        update();
+    }
+
+    // LUT Preset 2: Cool/Blue
+    if (event->key() == Qt::Key_2) {
+        std::vector<float> lutData = LUTUtils::generateStyledLUT(m_lutSize, 2);
+        glDeleteTextures(1, &m_texColorLUT);
+        m_texColorLUT = LUTUtils::createLUT3DTexture(m_lutSize, lutData);
+        update();
+    }
 }
 
 void Realtime::keyReleaseEvent(QKeyEvent *event) {

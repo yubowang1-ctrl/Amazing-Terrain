@@ -22,6 +22,7 @@
 // #include "terrain/voxel_chunk.h"
 #include "terrain/terraingenerator.h"
 #include "vegetation/lsystem_tree.h"
+#include "lut_utils.h"
 
 class Realtime : public QOpenGLWidget
 {
@@ -162,6 +163,20 @@ private:
     GLuint m_texWaterNormal = 0;
     float  m_time           = 0.f; // time used for rolling UV
 
+    // fog
+    bool m_enableFog = true;
+    bool m_enableHeightFog = true;
+    float m_fogDensity = 0.015f;
+    float m_fogHeightFalloff = 0.08f;
+    float m_fogStart = 2.0f;
+    glm::vec3 m_fogColor = glm::vec3(0.7f, 0.75f, 0.8f);
+
+    // LUT
+    GLuint m_texColorLUT = 0;
+    int    m_lutSize = 32;
+    bool   m_enableColorLUT = false;
+    int    m_lutPreset = 0;
+
     // skybox
     GLMesh* m_skyCube = nullptr;
     GLuint  m_progSky = 0;
@@ -222,5 +237,6 @@ private:
     void createScreenQuad();            // create [-1,1]^2 full-screen triangular grid
     void renderScene();
 
+    void calculateFrustumCorners(glm::vec3 corners[4]) const;
 };
 
