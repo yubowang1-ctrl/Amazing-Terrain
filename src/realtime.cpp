@@ -560,8 +560,42 @@ void Realtime::createScreenQuad()
     m_screenQuad.uploadinterleavedPNC(verts);
 }
 
+<<<<<<< Updated upstream
 void Realtime::renderScene()
 {
+=======
+glm::mat4 Realtime::createMirroredViewMatrix(float waterHeight) {
+    // Mirror camera position about waterHeight
+    glm::vec3 mirroredCamPos = m_cam.eye;
+    mirroredCamPos.y = 2.0f * waterHeight - m_cam.eye.y;
+
+    // Invert the up direction
+    glm::vec3 mirroredUp = glm::vec3(0.0f, -1.0f, 0.0f);
+
+    // Calculate view matrix with mirrored camera position and inverted up
+    glm::vec3 w = glm::normalize(-m_cam.look);
+    glm::vec3 v = glm::normalize(mirroredUp - glm::dot(mirroredUp, w) * w);
+    glm::vec3 u = glm::cross(v, w);
+
+    glm::mat4 Rotate(
+        u.x, v.x, w.x, 0.0f,
+        u.y, v.y, w.y, 0.0f,
+        u.z, v.z, w.z, 0.0f,
+        0.0f, 0.0f, 0.0f, 1.0f
+        );
+    glm::mat4 Translate(
+        1.0f, 0.0f, 0.0f, 0.0f,
+        0.0f, 1.0f, 0.0f, 0.0f,
+        0.0f, 0.0f, 1.0f, 0.0f,
+        -mirroredCamPos.x, -mirroredCamPos.y, -mirroredCamPos.z, 1.0f
+        );
+
+    return Rotate * Translate;
+}
+
+
+void Realtime::renderScene(){
+>>>>>>> Stashed changes
     // global sun/ambient definition
     glm::vec3 sunDir = glm::normalize(glm::vec3(0.3f, -1.0f, 0.2f));
     glm::vec3 sunColor = glm::vec3(2.5f);
@@ -708,8 +742,13 @@ void Realtime::renderScene()
     }
 
     // water
+<<<<<<< Updated upstream
     if (m_progWater && m_texWaterNormal)
     {
+=======
+    /*
+    if (m_progWater && m_texWaterNormal) {
+>>>>>>> Stashed changes
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
@@ -758,6 +797,7 @@ void Realtime::renderScene()
 
         glDisable(GL_BLEND);
     }
+    */
 
     // forest: use instance rendering shader
     if (m_drawForest && m_treeCylinderMesh && m_branchInstanceCount > 0)
@@ -815,6 +855,326 @@ void Realtime::renderScene()
     {
         m_particleSystem->draw(m_cam.view(), m_cam.proj());
     }
+}
+
+//
+void Realtime::renderSceneObject(const glm::mat4& viewMatrix){
+    // global sun/ambient definition
+    glm::vec3 sunDir   = glm::normalize(glm::vec3(0.3f, -1.0f, 0.2f));
+    glm::vec3 sunColor = glm::vec3(2.5f);
+    glm::vec3 ambColor = glm::vec3(0.35f);  // unified ambient light of "skylight + ground reflection"
+
+    // sky color + fog density
+    glm::vec3 fogColor(0.55f, 0.70f, 0.90f); // FIXME: can be set similar to color of the sky and horizon.
+    float fogDensity = 0.02f;                // 0.01 to 0.03
+
+    // skybox
+    if (m_progSky && m_skyCube) {
+        glDepthMask(GL_FALSE); // not specify depth, just draw the background
+
+        // turn off backface culling for "back face" rendering
+        glDisable(GL_CULL_FACE);
+
+        glUseProgram(m_progSky);
+
+        auto setSkyMat4 = [&](const char* name, const glm::mat4 &M){
+            glUniformMatrix4fv(glGetUniformLocation(m_progSky, name), 1, GL_FALSE, &M[0][0]);
+        };
+
+        glm::mat4 viewNoTrans = glm::mat4(glm::mat3(viewMatrix));
+        setSkyMat4("uView", viewNoTrans);
+        setSkyMat4("uProj", m_cam.proj());
+
+        glUniform3fv(glGetUniformLocation(m_progSky, "uSunDir"),   1, &sunDir[0]);
+        glUniform3fv(glGetUniformLocation(m_progSky, "uSunColor"), 1, &sunColor[0]);
+
+        glm::vec3 skyTop(0.04f, 0.23f, 0.48f);
+        glm::vec3 skyHori(0.42f, 0.60f, 0.85f);
+        glm::vec3 skyBottom(0.75f, 0.65f, 0.55f);
+
+        glUniform3fv(glGetUniformLocation(m_progSky, "uSkyTopColor"),     1, &skyTop[0]);
+        glUniform3fv(glGetUniformLocation(m_progSky, "uSkyHorizonColor"), 1, &skyHori[0]);
+        glUniform3fv(glGetUniformLocation(m_progSky, "uSkyBottomColor"),  1, &skyBottom[0]);
+
+        m_skyCube->draw();
+
+        glEnable(GL_CULL_FACE);
+        glDepthMask(GL_TRUE);
+    }
+
+    // terrain
+    if (m_hasTerrain && m_progTerrain) {
+        glPolygonMode(GL_FRONT_AND_BACK, m_terrainWire ? GL_LINE : GL_FILL);
+
+        glUseProgram(m_progTerrain);
+
+        auto set4 = [&](const char *n, const glm::mat4 &M){
+            glUniformMatrix4fv(glGetUniformLocation(m_progTerrain, n),
+                               1, GL_FALSE, &M[0][0]);
+        };
+        set4("uProj",  m_cam.proj());
+        set4("uView",  viewMatrix);
+        set4("uModel", m_terrainModel);
+        glUniform1i(glGetUniformLocation(m_progTerrain, "wireshade"),
+                    m_terrainWire ? 1 : 0);
+
+        // Lighting & Height Parameters
+        glUniform3fv(glGetUniformLocation(m_progTerrain, "uEye"), 1, &m_cam.eye[0]);
+
+        glUniform3fv(glGetUniformLocation(m_progTerrain, "uSunDir"),       1, &sunDir[0]);
+        glUniform3fv(glGetUniformLocation(m_progTerrain, "uSunColor"),     1, &sunColor[0]);
+        glUniform3fv(glGetUniformLocation(m_progTerrain, "uAmbientColor"), 1, &ambColor[0]);
+
+        glUniform3fv(glGetUniformLocation(m_progTerrain, "uFogColor"),   1, &fogColor[0]);
+        glUniform1f (glGetUniformLocation(m_progTerrain, "uFogDensity"),    fogDensity);
+
+        glUniform1f(glGetUniformLocation(m_progTerrain, "uSeaHeight"),   m_seaHeightWorld);
+        glUniform1f(glGetUniformLocation(m_progTerrain, "uHeightScale"), m_heightScaleWorld);
+
+        // normal intentisty
+        glUniform1f(glGetUniformLocation(m_progTerrain, "uNormalStrength"), 1.15f);
+
+        // bind texture to sampler
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, m_texGrassAlbedo);
+        glUniform1i(glGetUniformLocation(m_progTerrain, "uGrassAlbedo"), 0);
+
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, m_texRockAlbedo);
+        glUniform1i(glGetUniformLocation(m_progTerrain, "uRockAlbedo"), 1);
+
+        glActiveTexture(GL_TEXTURE2);
+        glBindTexture(GL_TEXTURE_2D, m_texBeachAlbedo);
+        glUniform1i(glGetUniformLocation(m_progTerrain, "uBeachAlbedo"), 2);
+
+        glActiveTexture(GL_TEXTURE3);
+        glBindTexture(GL_TEXTURE_2D, m_texGrassNormal);
+        glUniform1i(glGetUniformLocation(m_progTerrain, "uGrassNormal"), 3);
+
+        glActiveTexture(GL_TEXTURE4);
+        glBindTexture(GL_TEXTURE_2D, m_texRockNormal);
+        glUniform1i(glGetUniformLocation(m_progTerrain, "uRockNormal"), 4);
+
+        glActiveTexture(GL_TEXTURE5);
+        glBindTexture(GL_TEXTURE_2D, m_texBeachNormal);
+        glUniform1i(glGetUniformLocation(m_progTerrain, "uBeachNormal"), 5);
+
+        glActiveTexture(GL_TEXTURE6);
+        glBindTexture(GL_TEXTURE_2D, m_texGrassRough);
+        glUniform1i(glGetUniformLocation(m_progTerrain, "uGrassRough"), 6);
+
+        glActiveTexture(GL_TEXTURE7);
+        glBindTexture(GL_TEXTURE_2D, m_texRockRough);
+        glUniform1i(glGetUniformLocation(m_progTerrain, "uRockRough"), 7);
+
+        glActiveTexture(GL_TEXTURE8);
+        glBindTexture(GL_TEXTURE_2D, m_texBeachRough);
+        glUniform1i(glGetUniformLocation(m_progTerrain, "uBeachRough"), 8);
+
+        glActiveTexture(GL_TEXTURE9);
+        glBindTexture(GL_TEXTURE_2D, m_texRockHighAlbedo);
+        glUniform1i(glGetUniformLocation(m_progTerrain, "uRockHighAlbedo"), 9);
+
+        glActiveTexture(GL_TEXTURE10);
+        glBindTexture(GL_TEXTURE_2D, m_texRockHighNormal);
+        glUniform1i(glGetUniformLocation(m_progTerrain, "uRockHighNormal"), 10);
+
+        glActiveTexture(GL_TEXTURE11);
+        glBindTexture(GL_TEXTURE_2D, m_texRockHighRough);
+        glUniform1i(glGetUniformLocation(m_progTerrain, "uRockHighRough"), 11);
+
+        glActiveTexture(GL_TEXTURE12);
+        glBindTexture(GL_TEXTURE_2D, m_texSnowAlbedo);
+        glUniform1i(glGetUniformLocation(m_progTerrain, "uSnowAlbedo"), 12);
+
+        glActiveTexture(GL_TEXTURE13);
+        glBindTexture(GL_TEXTURE_2D, m_texSnowNormal);
+        glUniform1i(glGetUniformLocation(m_progTerrain, "uSnowNormal"), 13);
+
+        glActiveTexture(GL_TEXTURE14);
+        glBindTexture(GL_TEXTURE_2D, m_texSnowRough);
+        glUniform1i(glGetUniformLocation(m_progTerrain, "uSnowRough"), 14);
+
+        m_terrainMesh.draw();
+
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    }
+    // forest: use instance rendering shader
+    if (m_drawForest && m_treeCylinderMesh && m_branchInstanceCount > 0) {
+        glUseProgram(m_progForest);
+
+        auto setMat4 = [&](const char* name, const glm::mat4& M){
+            glUniformMatrix4fv(glGetUniformLocation(m_progForest, name),
+                               1, GL_FALSE, &M[0][0]);
+        };
+
+        setMat4("uView", viewMatrix);
+        setMat4("uProj", m_cam.proj());
+        glUniform3fv(glGetUniformLocation(m_progForest, "uEye"), 1, &m_cam.eye[0]);
+
+        // sunlight / ambientlLight / fog
+        glUniform3fv(glGetUniformLocation(m_progForest,"uSunDir"),      1, &sunDir[0]);
+        glUniform3fv(glGetUniformLocation(m_progForest,"uSunColor"),    1, &sunColor[0]);
+        glUniform3fv(glGetUniformLocation(m_progForest,"uAmbientColor"),1, &ambColor[0]);
+        glUniform3fv(glGetUniformLocation(m_progForest,"uFogColor"),    1, &fogColor[0]);
+        glUniform1f(glGetUniformLocation(m_progForest,"uFogDensity"),      fogDensity);
+
+        // first, draw the tree branches (brown texture)
+        glm::vec3 barkKa(0.1f, 0.08f, 0.05f);
+        glm::vec3 barkKd(0.3f, 0.22f, 0.15f);
+        glm::vec3 barkKs(0.02f);
+
+        glUniform3fv(glGetUniformLocation(m_progForest,"u_mat.ka"), 1, &barkKa[0]);
+        glUniform3fv(glGetUniformLocation(m_progForest,"u_mat.kd"), 1, &barkKd[0]);
+        glUniform3fv(glGetUniformLocation(m_progForest,"u_mat.ks"), 1, &barkKs[0]);
+        glUniform1f(glGetUniformLocation(m_progForest,"u_mat.shininess"), 12.f);
+
+        m_treeCylinderMesh->drawInstanced(m_branchInstanceCount);
+
+        // then, draw the leaves (green texture)
+        if (m_leafMesh && m_leafInstanceCount > 0) {
+            glm::vec3 leafKa(0.05f, 0.10f, 0.05f);
+            glm::vec3 leafKd(0.20f, 0.70f, 0.25f);;
+            glm::vec3 leafKs(0.03f);
+
+            glUniform3fv(glGetUniformLocation(m_progForest,"u_mat.ka"), 1, &leafKa[0]);
+            glUniform3fv(glGetUniformLocation(m_progForest,"u_mat.kd"), 1, &leafKd[0]);
+            glUniform3fv(glGetUniformLocation(m_progForest,"u_mat.ks"), 1, &leafKs[0]);
+            glUniform1f(glGetUniformLocation(m_progForest,"u_mat.shininess"), 10.f);
+
+            m_leafMesh->drawInstanced(m_leafInstanceCount);
+        }
+    }
+}
+
+// Reflection: Render scene above water to m_reflectionFBO
+void Realtime::renderReflection() {
+    glBindFramebuffer(GL_FRAMEBUFFER, m_reflectionFBO);
+    glViewport(0, 0, m_fbo_width, m_fbo_height);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    // Enable clipping plane to clip below water
+    glEnable(GL_CLIP_PLANE0);
+    // Set clipping plane: (0, 1, 0, -WATER_HEIGHT) - clips below water
+    double clipPlane[4] = {0.0, 1.0, 0.0, -WATER_HEIGHT};
+    glClipPlane(GL_CLIP_PLANE0, clipPlane);
+
+    // Use mirrored view matrix
+    glm::mat4 mirroredView = createMirroredViewMatrix(WATER_HEIGHT);
+    glm::vec3 originalCamPos = m_cam.eye;
+    m_cam.eye.y = 2.0f * WATER_HEIGHT - m_cam.eye.y;
+
+    renderSceneObject(mirroredView);
+    m_cam.eye = originalCamPos;
+
+    glDisable(GL_CLIP_PLANE0);
+}
+
+// Refraction: Render scene below water to m_refractionFBO
+void Realtime::renderRefraction() {
+    glBindFramebuffer(GL_FRAMEBUFFER, m_refractionFBO);
+    glViewport(0, 0, m_fbo_width, m_fbo_height);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    // Enable clipping plane to clip above water
+    glEnable(GL_CLIP_PLANE0);
+    // Set clipping plane: (0, -1, 0, WATER_HEIGHT) - clips above water
+    double clipPlane[4] = {0.0, -1.0, 0.0, WATER_HEIGHT};
+    glClipPlane(GL_CLIP_PLANE0, clipPlane);
+
+    // Use normal view matrix
+    renderSceneObject(m_cam.view());
+
+    glDisable(GL_CLIP_PLANE0);
+}
+
+// Water Part
+void Realtime::renderWater(){
+    if (!m_progWater) return;
+
+    // Enable blending for water transparency
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+     // Disable depth writing but keep depth testing for proper occlusion
+    glDepthMask(GL_FALSE);
+
+    glUseProgram(m_progWater);
+    glUniform1f(glGetUniformLocation(m_progWater, "u_near"), m_cam.nearP);
+    glUniform1f(glGetUniformLocation(m_progWater, "u_far"), m_cam.farP);
+
+    // Bind textures to texture units
+    // Reflection texture
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, m_reflectionFBO_texture);
+    glUniform1i(glGetUniformLocation(m_progWater, "u_reflectionTexture"), 0);
+
+    // Refraction texture
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, m_refractionFBO_texture);
+    glUniform1i(glGetUniformLocation(m_progWater, "u_refractionTexture"), 1);
+
+    // Depth texture
+    glActiveTexture(GL_TEXTURE2);
+    glBindTexture(GL_TEXTURE_2D, m_refractionDepthTexture);
+    glUniform1i(glGetUniformLocation(m_progWater, "u_depthTexture"), 2);
+
+    // Normal map
+    glActiveTexture(GL_TEXTURE3);
+    glBindTexture(GL_TEXTURE_2D, m_texWaterNormal);
+    glUniform1i(glGetUniformLocation(m_progWater, "u_normalMap"), 3);
+
+    // DUDV map
+    glActiveTexture(GL_TEXTURE4);
+    glBindTexture(GL_TEXTURE_2D, m_waterDUDVTexture);
+    glUniform1i(glGetUniformLocation(m_progWater, "u_dudvMap"), 4);
+
+    // Set MVP matrix for water quad
+    glUniformMatrix4fv(glGetUniformLocation(m_progWater, "model_matrix"), 1, GL_FALSE, &m_terrainModel[0][0]);
+
+    // View & Proj
+    glUniformMatrix4fv(glGetUniformLocation(m_progWater, "view_matrix"), 1, GL_FALSE, &m_cam.view()[0][0]);
+    glUniformMatrix4fv(glGetUniformLocation(m_progWater, "proj_matrix"), 1, GL_FALSE, &m_cam.proj()[0][0]);
+
+    // Camera position
+    glUniform3fv(glGetUniformLocation(m_progWater, "ws_cam_pos"), 1, &m_cam.eye[0]);
+
+    // Time factor (for animation)
+    glUniform1f(glGetUniformLocation(m_progWater, "u_timeFactor"), m_time);
+
+    glm::vec3 sunDir   = glm::normalize(glm::vec3(0.3f, -1.0f, 0.2f));
+    glm::vec3 sunColor = glm::vec3(2.5f);
+
+    // Global data
+    glUniform1f(glGetUniformLocation(m_progWater, "globalData.ka"), 0.5f);
+    glUniform1f(glGetUniformLocation(m_progWater, "globalData.kd"), 0.5f);
+    glUniform1f(glGetUniformLocation(m_progWater, "globalData.ks"), 1.0f);
+
+    // Lights
+    glUniform1i(glGetUniformLocation(m_progWater, "number_light"), 1);
+
+    glUniform1i(glGetUniformLocation(m_progWater, "light[0].type"), 0);
+    glUniform3fv(glGetUniformLocation(m_progWater, "light[0].dir"), 1, &sunDir[0]);
+    glUniform3fv(glGetUniformLocation(m_progWater, "light[0].color"), 1, &sunColor[0]);
+
+    glm::vec3 zero(0.0f);
+    glUniform3fv(glGetUniformLocation(m_progWater, "light[0].pos"), 1, &zero[0]);
+    glUniform3fv(glGetUniformLocation(m_progWater, "light[0].function"), 1, &zero[0]);
+
+    // draw water quad
+    m_waterMesh.draw();
+
+    // Restore depth writing and disable blending
+    glUseProgram(0);
+    glDepthMask(GL_TRUE);
+    glDisable(GL_BLEND);
+
+    // Unbind textures
+    glActiveTexture(GL_TEXTURE0); glBindTexture(GL_TEXTURE_2D, 0);
+    glActiveTexture(GL_TEXTURE1); glBindTexture(GL_TEXTURE_2D, 0);
+    glActiveTexture(GL_TEXTURE2); glBindTexture(GL_TEXTURE_2D, 0);
+    glActiveTexture(GL_TEXTURE3); glBindTexture(GL_TEXTURE_2D, 0);
+    glActiveTexture(GL_TEXTURE4); glBindTexture(GL_TEXTURE_2D, 0);
 }
 
 // ================== Rendering the Scene!
@@ -1155,6 +1515,73 @@ void Realtime::initializeGL()
     GLint vp[4];
     glGetIntegerv(GL_VIEWPORT, vp);
     ensureSceneFBO(vp[2], vp[3]);
+<<<<<<< Updated upstream
+=======
+
+    // Initialize FBO dimensions
+    m_fbo_width = m_sceneWidth * m_devicePixelRatio;
+    m_fbo_height = m_sceneHeight * m_devicePixelRatio;
+
+    // Create and initialize reflection FBO
+    glGenTextures(1, &m_reflectionFBO_texture);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, m_reflectionFBO_texture);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, m_fbo_width, m_fbo_height, 0,
+                 GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glBindTexture(GL_TEXTURE_2D, 0);
+
+    glGenRenderbuffers(1, &m_reflectionFBO_renderbuffer);
+    glBindRenderbuffer(GL_RENDERBUFFER, m_reflectionFBO_renderbuffer);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, m_fbo_width, m_fbo_height);
+    glBindRenderbuffer(GL_RENDERBUFFER, 0);
+
+    glGenFramebuffers(1, &m_reflectionFBO);
+    glBindFramebuffer(GL_FRAMEBUFFER, m_reflectionFBO);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_reflectionFBO_texture, 0);
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, m_reflectionFBO_renderbuffer);
+
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+        std::cerr << "Error: Reflection FBO is not complete!" << std::endl;
+    }
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    // Create and initialize refraction FBO
+    glGenTextures(1, &m_refractionFBO_texture);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, m_refractionFBO_texture);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, m_fbo_width, m_fbo_height, 0,
+                 GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glBindTexture(GL_TEXTURE_2D, 0);
+
+    // Create depth texture for refraction FBO
+    glGenTextures(1, &m_refractionDepthTexture);
+    glBindTexture(GL_TEXTURE_2D, m_refractionDepthTexture);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, m_fbo_width, m_fbo_height, 0,
+                 GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glBindTexture(GL_TEXTURE_2D, 0);
+
+    glGenFramebuffers(1, &m_refractionFBO);
+    glBindFramebuffer(GL_FRAMEBUFFER, m_refractionFBO);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_refractionFBO_texture, 0);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, m_refractionDepthTexture, 0);
+
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+        std::cerr << "Error: Refraction FBO is not complete!" << std::endl;
+    }
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    m_texWaterNormal = loadTexture2D(":/resources/textures/normalMap.png", false);
+    m_waterDUDVTexture = loadTexture2D(":/resources/textures/waterDUDV.png", false);
+
+>>>>>>> Stashed changes
 }
 
 void Realtime::paintGL()
@@ -1191,6 +1618,10 @@ void Realtime::paintGL()
         return;
     }
 
+    // Reflection & Refraction pass
+    renderReflection();
+    renderRefraction();
+
     // Scene pass: Draw to m_fboScene
     ensureSceneFBO(w, h);
     glBindFramebuffer(GL_FRAMEBUFFER, m_fboScene);
@@ -1199,6 +1630,7 @@ void Realtime::paintGL()
     glEnable(GL_DEPTH_TEST);
 
     renderScene();
+    renderWater();
 
     // Post-processing pass
 

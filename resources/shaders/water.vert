@@ -1,26 +1,25 @@
 #version 330 core
 
-layout(location = 0) in vec3 a_pos;
-layout(location = 1) in vec3 a_nor;
-layout(location = 2) in vec3 a_uvPacked;
+layout(location = 0) in vec3 os_pos;
+layout(location = 1) in vec3 os_norm;
+layout(location = 2) in vec3 os_uv;
 
-out vec3 v_worldPos;
-out vec3 v_worldNormal;
-out vec2 v_uv;
+out vec3 ws_pos;
+out vec3 ws_norm;
+out vec2 uv;
 
-uniform mat4 uProj;
-uniform mat4 uView;
-uniform mat4 uModel;
+uniform mat4 model_matrix;
+uniform mat4 view_matrix;
+uniform mat4 proj_matrix;
 
-void main()
-{
-    vec4 world = uModel * vec4(a_pos, 1.0);
-    v_worldPos = world.xyz;
+void main() {
+    ws_pos = vec3(model_matrix * vec4(os_pos, 1.0));
 
-    mat3 Nmat = transpose(inverse(mat3(uModel)));
-    v_worldNormal = normalize(Nmat * a_nor);
+    mat3 model_normal_matrix = transpose(inverse(mat3(model_matrix)));
+    ws_norm = model_normal_matrix * normalize(os_norm);
 
-    v_uv = a_uvPacked.xy;
+    uv = os_uv.xy;
 
-    gl_Position = uProj * uView * world;
+    gl_Position = proj_matrix * view_matrix * vec4(ws_pos, 1.0);
 }
+
