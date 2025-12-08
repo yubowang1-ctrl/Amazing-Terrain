@@ -859,48 +859,17 @@ void Realtime::renderScene()
     }
 
     // water
-    if (m_progWater && m_texWaterNormal) {
+    if (m_progWater) {
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        glDepthMask(GL_FALSE);
 
         glUseProgram(m_progWater);
 
-        auto set4 = [&](const char *n, const glm::mat4 &M){
-            glUniformMatrix4fv(glGetUniformLocation(m_progWater, n),
-                               1, GL_FALSE, &M[0][0]);
-        };
-        set4("uProj",  m_cam.proj());
-        set4("uView",  m_cam.view());
-        set4("uModel", m_terrainModel); // same model matrix used in terrain
-
-        glUniform3fv(glGetUniformLocation(m_progWater, "uEye"), 1, &m_cam.eye[0]);
-
-        // Water uses softer lighting for better visual appearance
-        glm::vec3 waterSunColor(1.5f);   // intentionally dimmer than terrain
-        glm::vec3 waterAmbient(0.25f);   // intentionally darker
-
-        glUniform3fv(glGetUniformLocation(m_progWater, "uSunDir"),       1, &sunDir[0]);
-        glUniform3fv(glGetUniformLocation(m_progWater, "uSunColor"),     1, &waterSunColor[0]);
-        glUniform3fv(glGetUniformLocation(m_progWater, "uAmbientColor"), 1, &waterAmbient[0]);
-
-        // Adjustable: water color and transparency specs
-        glm::vec3 shallow(0.12, 0.4, 0.6);;
-        glm::vec3 deep(0.02, 0.1, 0.3);
-        glUniform3fv(glGetUniformLocation(m_progWater, "uWaterColorShallow"), 1, &shallow[0]);
-        glUniform3fv(glGetUniformLocation(m_progWater, "uWaterColorDeep"),    1, &deep[0]);
-        glUniform1f(glGetUniformLocation(m_progWater, "uWaterAlpha"), 0.65f);
-
-        // normal scrolling parameters for water "scrolling texture"
-        glUniform1f(glGetUniformLocation(m_progWater, "uTime"),          m_time);
-        glUniform1f(glGetUniformLocation(m_progWater, "uTiling"),        3.0f);
-        glUniform1f(glGetUniformLocation(m_progWater, "uScrollSpeed"),   0.05f);
-        glm::vec2 scrollDir(1.0f, 0.3f);
-        glUniform2fv(glGetUniformLocation(m_progWater, "uScrollDir"),    1, &scrollDir[0]);
-        glUniform1f(glGetUniformLocation(m_progWater, "uNormalStrength"),0.4f);
-
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, m_texWaterNormal);
-        glUniform1i(glGetUniformLocation(m_progWater, "uNormalMap"), 0);
+        glUniformMatrix4fv(glGetUniformLocation(m_progWater, "model_matrix"), 1, GL_FALSE, &m_terrainModel[0][0]);
+        glUniformMatrix4fv(glGetUniformLocation(m_progWater, "view_matrix"), 1, GL_FALSE, &m_cam.view()[0][0]);
+        glUniformMatrix4fv(glGetUniformLocation(m_progWater, "proj_matrix"), 1, GL_FALSE, &m_cam.proj()[0][0]);
+        glUniform3fv(glGetUniformLocation(m_progWater, "ws_cam_pos"), 1, &m_cam.eye[0]);
 
         glUniform1i(glGetUniformLocation(m_progWater, "uEnableFog"), m_enableFog);
         glUniform1f(glGetUniformLocation(m_progWater, "uFogDensity"), m_fogDensity);
@@ -908,6 +877,7 @@ void Realtime::renderScene()
 
         m_waterMesh.draw();
 
+        glDepthMask(GL_TRUE);
         glDisable(GL_BLEND);
     }
 
@@ -984,7 +954,6 @@ void Realtime::renderScene()
     }
 }
 
-//
 void Realtime::renderSceneObject(const glm::mat4 &viewMatrix)
 {
     // global sun/ambient definition
@@ -1306,6 +1275,10 @@ void Realtime::renderWater()
     // Time factor (for animation)
     glUniform1f(glGetUniformLocation(m_progWater, "u_timeFactor"), m_time);
 
+    glUniform1i(glGetUniformLocation(m_progWater, "uEnableFog"), m_enableFog);
+    glUniform1f(glGetUniformLocation(m_progWater, "uFogDensity"), m_fogDensity);
+    glUniform3fv(glGetUniformLocation(m_progWater, "uFogColor"), 1, &m_fogColor[0]);
+
     glm::vec3 sunDir = glm::normalize(glm::vec3(0.3f, -1.0f, 0.2f));
     glm::vec3 sunColor = glm::vec3(2.5f);
 
@@ -1579,7 +1552,7 @@ void Realtime::initializeGL()
         m_texBeachAlbedo = loadTexture2D(":/resources/textures/terrain/beach/albedo.jpg", false);
         m_texRockHighAlbedo = loadTexture2D(":/resources/textures/terrain/rock/albedo.jpg", false);
         m_texSnowAlbedo = loadTexture2D(":/resources/textures/terrain/snow/albedo.jpg", false);
-        m_texRockObjAlbedo = loadTexture2D("/Users/wangyubodemac/Amazing-Mountain/resources/textures/terrain/rock_beach/displacement.jpg", false);
+        m_texRockObjAlbedo = loadTexture2D("/resources/textures/terrain/rock_beach/displacement.jpg", false);
 
         m_texGrassNormal = loadTexture2D(":/resources/textures/terrain/grass/normal.jpg", false);
         m_texRockNormal = loadTexture2D(":/resources/textures/terrain/rock_beach/normal.jpg", false);
@@ -1777,6 +1750,7 @@ void Realtime::initializeGL()
 }
 
 void Realtime::paintGL() {
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     if (!m_progTerrain || !m_progWater || !m_progSky) {
         // qWarning("No scene shader loaded");
         return;
