@@ -35,7 +35,7 @@ void main() {
 
     vec3 waterBase = vec3(0.0, 0.3, 0.5);
     vec3 waterColor = mix(refraction, reflection, fresnel);
-    waterColor = mix(waterColor, waterBase, 0.3); // Blend with water color
+    waterColor = mix(waterColor, waterBase, 0.3); // blend with water color
 
     // Apply fog
     if (uEnableFog) {

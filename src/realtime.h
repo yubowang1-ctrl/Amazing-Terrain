@@ -194,10 +194,10 @@ private:
     // fog
     bool m_enableFog = true;
     bool m_enableHeightFog = true;
-    float m_fogDensity = 0.15f;
+    float m_fogDensity = 0.1f;
     float m_fogHeightFalloff = 0.08f;
     float m_fogStart = 0.0f;
-    glm::vec3 m_fogColor = glm::vec3(0.85f, 0.88f, 0.92f);
+    glm::vec3 m_fogColor = glm::vec3(0.5f, 0.6f, 0.7f);
 
     // LUT
     GLuint m_texColorLUT = 0;

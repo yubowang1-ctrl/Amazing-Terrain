@@ -1225,7 +1225,6 @@ void Realtime::renderWater()
     if (!m_progWater)
         return;
 
-    // Enable blending for water transparency
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
@@ -2038,14 +2037,6 @@ void Realtime::keyPressEvent(QKeyEvent *event)
     // Color LUT toggle
     if (event->key() == Qt::Key_L) {
         m_enableColorLUT = !m_enableColorLUT;
-        update();
-    }
-
-    // LUT Preset 1: Warm/Golden
-    if (event->key() == Qt::Key_1) {
-        std::vector<float> lutData = LUTUtils::generateStyledLUT(m_lutSize, 1);
-        glDeleteTextures(1, &m_texColorLUT);
-        m_texColorLUT = LUTUtils::createLUT3DTexture(m_lutSize, lutData);
         update();
     }
 
