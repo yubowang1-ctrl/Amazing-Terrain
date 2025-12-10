@@ -61,6 +61,22 @@ add_executable(${PROJECT_NAME}
     src/particles/particlesystem.cpp
     src/particles/particlesystem.h
 
+    # Sky textures - Rainy
+    resources/textures/sky/Rainy/back.jpg
+    resources/textures/sky/Rainy/bottom.jpg
+    resources/textures/sky/Rainy/front.jpg
+    resources/textures/sky/Rainy/left.jpg
+    resources/textures/sky/Rainy/right.jpg
+    resources/textures/sky/Rainy/top.jpg
+
+    # Sky textures - Sunny
+    resources/textures/sky/Sunny/Back.bmp
+    resources/textures/sky/Sunny/Bottom.bmp
+    resources/textures/sky/Sunny/Front.bmp
+    resources/textures/sky/Sunny/Left.bmp
+    resources/textures/sky/Sunny/Right.bmp
+    resources/textures/sky/Sunny/Top.bmp
+
     # # ====== terrian / postprocessing ======
     # src/terrain/voxel_chunk.h
     # src/terrain/voxel_chunk.cpp
@@ -71,6 +87,7 @@ add_executable(${PROJECT_NAME}
     src/particles/particlesystem.cpp
     README.md
     resources/shaders/default.frag resources/shaders/default.vert resources/shaders/forest.frag resources/shaders/forest.vert resources/shaders/post.frag resources/shaders/post.vert resources/shaders/sky.frag resources/shaders/sky.vert resources/shaders/terrain.frag resources/shaders/terrain.vert resources/shaders/water.frag resources/shaders/water.vert resources/textures/terrain/beach/albedo.jpg resources/textures/terrain/beach/ao.jpg resources/textures/terrain/beach/displacement.jpg resources/textures/terrain/beach/normal.jpg resources/textures/terrain/beach/roughness.jpg resources/textures/terrain/beach/Sand_Fine_tdsmeeko_surface_Preview.png resources/textures/terrain/beach/tdsmeeko_2K_Displacement.exr resources/textures/terrain/grass/albedo.jpg resources/textures/terrain/grass/ao.jpg resources/textures/terrain/grass/displacement.jpg resources/textures/terrain/grass/normal.jpg resources/textures/terrain/grass/roughness.jpg resources/textures/terrain/grass/vb2mdatlw_2K_Displacement.exr resources/textures/terrain/rock/albedo.jpg resources/textures/terrain/rock/displacement.jpg resources/textures/terrain/rock/normal.jpg resources/textures/terrain/rock/roughness.jpg resources/textures/terrain/rock/vdyoaif_2K_AO.jpg resources/textures/terrain/rock/vdyoaif_2K_Displacement.exr resources/textures/terrain/rock_beach/albedo.jpg resources/textures/terrain/rock_beach/ao.jpg resources/textures/terrain/rock_beach/displacement.jpg resources/textures/terrain/rock_beach/normal.jpg resources/textures/terrain/rock_beach/roughness.jpg resources/textures/terrain/rock_beach/ulmiccvlw_2K_Displacement.exr resources/textures/terrain/snow/albedo.jpg resources/textures/terrain/snow/ao.jpg resources/textures/terrain/snow/displacement.jpg resources/textures/terrain/snow/normal.jpg resources/textures/terrain/snow/roughness.jpg resources/textures/terrain/snow/Snow_Mixed_vcqnfdk_surface_Preview.png resources/textures/terrain/snow/vcqnfdk_2K_Displacement.exr resources/textures/terrain/snow/vcqnfdk_2K_Transmission.jpg resources/textures/water_normal_tile.jpg
+
     # src/terrain/terrainsystem.cpp
     # src/terrain/terrainsystem.h
 
@@ -121,12 +138,12 @@ qt6_add_resources(${PROJECT_NAME} "Resources"
         resources/textures/waterDUDV.png
         resources/textures/normalMap.png
 
-
         resources/textures/terrain/grass/roughness.jpg
         resources/textures/terrain/rock_beach/roughness.jpg
         resources/textures/terrain/beach/roughness.jpg
         resources/textures/terrain/rock/roughness.jpg
         resources/textures/terrain/snow/roughness.jpg
+        resources/textures/terrain/rock_beach/displacement.jpg
 
         resources/shaders/terrain.frag
         resources/shaders/terrain.vert

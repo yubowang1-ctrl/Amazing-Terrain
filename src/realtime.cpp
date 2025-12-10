@@ -1197,7 +1197,7 @@ void Realtime::renderSceneObject(const glm::mat4 &viewMatrix)
             // Bind texture
             glActiveTexture(GL_TEXTURE0);
             glBindTexture(GL_TEXTURE_2D, m_texRockObjAlbedo);
-            glUniform1i(glGetUniformLocation(m_progForest, "uTexture"), 0);
+            glUniform1i(glGetUniformLocation(m_progForest, "uTexture"), 15);
             glUniform1i(glGetUniformLocation(m_progForest, "uUseTexture"), 1);
 
             m_rockMesh->drawInstanced(m_rockInstanceCount);
@@ -1594,7 +1594,7 @@ void Realtime::initializeGL()
     m_skyCube = getOrCreateMesh(PrimitiveType::PRIMITIVE_CUBE, 1, 1);
 
     // Load skybox cubemaps
-    // 1. 加载晴天贴图 (加载顺序: Right, Left, Top, Bottom, Back, Front)
+    // 1. load sunny day texture (sequence: Right, Left, Top, Bottom, Back, Front)
     std::vector<QString> sunnyFaces = {
         ":/resources/textures/sky/Sunny/Right.bmp",
         ":/resources/textures/sky/Sunny/Left.bmp",
@@ -1605,7 +1605,7 @@ void Realtime::initializeGL()
     };
     m_texSkySunny = loadCubemap(sunnyFaces);
 
-    // 2. 加载雨天贴图 (加载顺序: Right, Left, Top, Bottom, Back, Front)
+    // 2. load rainy day texture (sequence: Left, Top, Bottom, Back, Front)
     std::vector<QString> rainyFaces = {
         ":/resources/textures/sky/Rainy/right.jpg",
         ":/resources/textures/sky/Rainy/left.jpg",
@@ -1628,7 +1628,7 @@ void Realtime::initializeGL()
         m_texBeachAlbedo = loadTexture2D(":/resources/textures/terrain/beach/albedo.jpg", false);
         m_texRockHighAlbedo = loadTexture2D(":/resources/textures/terrain/rock/albedo.jpg", false);
         m_texSnowAlbedo = loadTexture2D(":/resources/textures/terrain/snow/albedo.jpg", false);
-        m_texRockObjAlbedo = loadTexture2D("/resources/textures/terrain/rock_beach/displacement.jpg", false);
+        m_texRockObjAlbedo = loadTexture2D(":/resources/textures/terrain/rock_beach/displacement.jpg", false);
 
         m_texGrassNormal = loadTexture2D(":/resources/textures/terrain/grass/normal.jpg", false);
         m_texRockNormal = loadTexture2D(":/resources/textures/terrain/rock_beach/normal.jpg", false);
