@@ -1,5 +1,9 @@
 # CS 1230 Project 7: Beauty Mountain
 
+## Demo
+
+https://github.com/user-attachments/assets/a7f309e1-479c-43e0-89e8-0d570fab621b
+
 ## Design Choices
 
 ### 1. L-Systems (40 pts)
