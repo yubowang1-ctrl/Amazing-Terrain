@@ -192,10 +192,76 @@ color = mix(color, uFogColor, clamp(fog, 0.0, 1.0));
 Fog color `(0.55, 0.70, 0.90)` matches the sky horizon, creating seamless atmospheric perspective. Density `0.02` provides gradual falloff from ~20 to ~100 world units.
 
 ---
+### 6. Particle System (20 pts)
+
+**Files:** `particlesystem.cpp`, `particlesystem.h`, `particle.vert`, `particle.frag`
+
+#### Instanced Rendering
+
+To efficiently render thousands of precipitation particles, we utilize **Instanced Rendering**. Instead of issuing a draw call for each particle, we use a single `glDrawArraysInstanced` call to render a shared quad geometry.
+
+- **Data Layout:**
+  - **Per-Vertex:** Local quad coordinates (static VBO).
+  - **Per-Instance:** World position, color, and size (dynamic VBOs with `glVertexAttribDivisor(..., 1)`).
+- **Buffer Management:** Particle state is updated on the CPU and streamed to the GPU via `glBufferData` with `GL_STREAM_DRAW` each frame.
+
+#### Weather Types & Physics
+
+The system supports two distinct weather modes, automatically toggled by the Color Grading presets:
+
+1. **Snow (Type 0):**
+   - **Motion:** Particles fall slowly with a sinusoidal sway in X/Z to simulate air resistance and turbulence.
+   - **Appearance:** Soft, circular billboards generated in the fragment shader using `smoothstep` for fuzzy edges.
+   - **Lifecycle:** Particles respawn at random heights when they hit the ground or expire.
+
+2. **Rain (Type 1):**
+   - **Motion:** Fast vertical descent.
+   - **Appearance:** Elongated streaks. The vertex shader stretches the billboard along the Y-axis based on velocity, while the fragment shader applies a vertical fade gradient.
+
+#### Shader-Based Billboarding
+
+To ensure particles always face the camera, we perform billboarding in the vertex shader:
+```glsl
+vec3 cameraRight = vec3(view[0][0], view[1][0], view[2][0]);
+vec3 cameraUp = vec3(view[0][1], view[1][1], view[2][1]);
+vec3 vertexPos = aInstancePos + offset 
+               + cameraRight * aLocalPos.x * size 
+               + cameraUp * aLocalPos.y * size;
+```
+
+---
+
+### 7. Camera Path (20 pts)
+
+**Files:** `camera_path.h`, `bezier.h`, `realtime.cpp`
+
+#### Piecewise Bezier Splines
+
+We implemented a robust **Piecewise Bezier Spline** system to create smooth, cinematic camera movements. The system decouples position and rotation interpolation to handle the 6-DOF camera state effectively.
+
+- **Algorithm:** **De Casteljau's Algorithm** is used for numerical stability when evaluating points on the curve.
+- **Continuity:** The system ensures **C1 Continuity** (continuous velocity), preventing jerky camera movements at keyframe transitions.
+
+#### Space-Agnostic Interpolation
+
+The `BezierSpline` class is templated and uses a `SpaceTraits` struct to define interpolation rules for different data types:
+
+1. **Position (`glm::vec3`):** Uses standard linear algebra (Linear Interpolation) for control point calculation.
+   ```cpp
+   static glm::vec3 Interpolate(const glm::vec3 &x, const glm::vec3 &y, float u) {
+       return x + u * (y - x);
+   }
+   ```
+
+2. **Rotation (`glm::quat`):** Uses **Spherical Linear Interpolation (Slerp)** to interpolate between orientation quaternions. This ensures the camera rotates along the shortest path on the 4D hypersphere with constant angular velocity, avoiding the "gimbal lock" issues of Euler angles.
+
+#### Keyframe System
+
+The path is defined by a sequence of keyframes (Position + Rotation + Time). In `Realtime::timerEvent`, we evaluate the spline at the current time `t` (looping every 20 seconds) to update the camera's View Matrix.
 
 ### Post-Processing Pipeline & Color Grading
 
-**Files:** `shaders/post.frag`, `shaders/post.frag`, src/realtime.cpp
+**Files:** `shaders/post.frag`, `shaders/post.frag`, `src/realtime.cpp`
 
 1. Scene Pass -> HDR Off-Screen FBO
 All geometry (terrain, water, sky, L-system forest) is rendered into:
