@@ -4,6 +4,9 @@
 
 https://github.com/user-attachments/assets/a7f309e1-479c-43e0-89e8-0d570fab621b
 
+## Project Overview:
+"Amazing Terrain" is a real-time procedural environment renderer built with C++ and OpenGL. It implements a multi-layer PBR terrain system alongside L-System-based vegetation, optimized through instanced rendering. The environment is further enhanced with dynamic weather particle systems, animated water, and cinematic camera movements driven by piecewise Bezier splines. A comprehensive post-processing pipeline integrates distance fog, and mood-aware color grading to finalize the visual output.
+
 ## Design Choices
 
 ### 1. L-Systems (40 pts)
